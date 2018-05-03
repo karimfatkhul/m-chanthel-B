@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Chanthel Apps</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="nav_communicate">Communicate</string>
+    <string name="nav_workflow">Workflow</string>
+    <string name="nav_my_task">My Task</string>
+    <string name="nav_recycle">Recycle Bin</string>
+    <string name="nav_about">About</string>
+
+    <string name="menu_search">Search</string>
+    <string name="menu_grid">Display Grid</string>
+    <string name="menu_list">Display List</string>
+
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_preview">Preview</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_cut">Cut</string>
+    <string name="action_set_owner">Set Owner</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_permission">Permission</string>
+    <string name="action_paste">Paste</string>
+
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
