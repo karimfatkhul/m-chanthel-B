@@ -280,6 +280,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 bottomSheetDialogMoreOption.hide();
                             }
                         });
+
                         //delete belum bisa automatic refresh
                         delete.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -299,7 +300,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                     showToast("Delete Success");
                                                     dialog.dismiss();
                                                     listData.clear();
-                                                    GetData(pid);
+                                                    //GetData(pid);
+
+                                                    restartActivity(pid);
 
                                                 } catch (Exception e) {
                                                     showToast(e + "");
@@ -376,15 +379,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                     //GetData(pid);
 //                                    showToast(pid+"");
 
-//                                    ParentID.getInstance().setPid(pid);
-
-                                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
-                                    SharedPreferences.Editor editor = preferences.edit();
-                                    editor.putString("pid", pid);
-                                    editor.commit();
-                                    Intent intent = new Intent(HomeActivity.this, HomeActivity.class);
-                                    startActivity(intent);
-
+                                    restartActivity(pid);
 
                                 } catch (Exception e) {
                                     showToast(e + "");
@@ -844,5 +839,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         };
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(stringRequest);
+    }
+
+    public void restartActivity(String pid) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("pid", pid);
+        editor.commit();
+        Intent intent = new Intent(HomeActivity.this, HomeActivity.class);
+        startActivity(intent);
     }
 }
