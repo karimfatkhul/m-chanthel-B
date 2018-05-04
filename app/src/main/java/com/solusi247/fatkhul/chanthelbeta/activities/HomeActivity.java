@@ -260,6 +260,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                     }
                                                     dialog.dismiss();
 
+                                                    restartActivity(pid);
+
 
                                                 } catch (Exception e) {
                                                     showToast(e + "");
