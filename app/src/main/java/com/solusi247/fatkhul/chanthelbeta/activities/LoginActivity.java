@@ -104,8 +104,6 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
 
                     if (pesan.equals("Success login")){
                         Toast.makeText(LoginActivity.this,pesan+"",Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(LoginActivity.this,HomeActivity.class);
-                        startActivity(intent);
 
                         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(LoginActivity.this);
                         SharedPreferences.Editor editor = preferences.edit();
@@ -115,6 +113,11 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
                         editor.putString("pid", "1");
                         editor.putString("rootname", "Task");
                         editor.commit();
+
+                        finish();
+
+                        Intent intent = new Intent(LoginActivity.this,HomeActivity.class);
+                        startActivity(intent);
                     }
                     else if(pesan.equals("Error username or password")){
                         Toast.makeText(LoginActivity.this,"Username and password doesn't match",Toast.LENGTH_SHORT).show();
