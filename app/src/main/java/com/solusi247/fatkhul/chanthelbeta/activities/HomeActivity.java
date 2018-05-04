@@ -101,6 +101,23 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         userName = preferences.getString("username", "");
         password = preferences.getString("password", "");
+
+
+        // On activity start check whether there is user previously logged in or not.
+        if ((userName == "") & (password == "")) {
+
+            // Finishing current Profile activity.
+            finish();
+
+            // If user already not log in then Redirect to LoginActivity .
+            Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+            startActivity(intent);
+
+            // Showing toast message.
+            Toast.makeText(HomeActivity.this, "Please Log in to continue", Toast.LENGTH_LONG).show();
+        }
+
+
         urlDirectory = preferences.getString("urlAPI", "");
         pid = preferences.getString("pid", "");
         lastPid = pid;
@@ -533,9 +550,16 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
+
+                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.clear();
+                            editor.apply();
+
+                            finish();
+
                             Intent i = new Intent(HomeActivity.this, LoginActivity.class);
                             startActivity(i);
-                            finish();
                         }
                     })
                     .setNegativeButton("Cancel", null);
