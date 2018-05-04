@@ -351,6 +351,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+        // nambah folder
         add_folder.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -372,8 +373,18 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                     contentAdapter.notifyDataSetChanged();
                                     showToast("Folder has been created");
                                     dialog.dismiss();
-                                    GetData(pid);
+                                    //GetData(pid);
 //                                    showToast(pid+"");
+
+//                                    ParentID.getInstance().setPid(pid);
+
+                                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                                    SharedPreferences.Editor editor = preferences.edit();
+                                    editor.putString("pid", pid);
+                                    editor.commit();
+                                    Intent intent = new Intent(HomeActivity.this, HomeActivity.class);
+                                    startActivity(intent);
+
 
                                 } catch (Exception e) {
                                     showToast(e + "");
