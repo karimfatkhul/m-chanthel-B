@@ -76,11 +76,11 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //startActivity(new Intent(getApplicationContext(),HomeActivity.class));
-                Toast.makeText(SearchActivity.this, "back", Toast.LENGTH_LONG).show();
-                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(SearchActivity.this);
-                SharedPreferences.Editor editor = preferences.edit();
-                editor.putString("pid", pid);
-                editor.commit();
+//                Toast.makeText(SearchActivity.this, "back", Toast.LENGTH_LONG).show();
+//                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(SearchActivity.this);
+//                SharedPreferences.Editor editor = preferences.edit();
+//                editor.putString("pid", pid);
+//                editor.commit();
                 Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
                 startActivity(intent);
             }
