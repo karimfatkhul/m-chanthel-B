@@ -148,7 +148,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 if (status == true) {
                     //mengganti mode tampilan ke list
                     recyclerView.setLayoutManager(new LinearLayoutManager(getBaseContext()));
-                    recyclerView.setAdapter(new ContentAdapter(getParent(), listData, recyclerView.getLayoutManager()));
+                    //recyclerView.setAdapter(new ContentAdapter(getParent(), listData, recyclerView.getLayoutManager()));
 
                     ScrollView scrollView = (ScrollView) findViewById(R.id.scrollViewHome);
                     scrollView.setPadding(0, 0, 0, 65);
@@ -158,18 +158,18 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 } else {
 
                     //mengganti mode tampilan ke grid
-
-                    layoutManager = new GridLayoutManager(getBaseContext(), 2);
-                    recyclerView.setLayoutManager(layoutManager);
+                    recyclerView.setLayoutManager(new GridLayoutManager(getBaseContext(), 2));
+                    //layoutManager = new GridLayoutManager(getBaseContext(), 2);
+                    //recyclerView.setLayoutManager(layoutManager);
 
 
                     imageView.setImageResource(R.drawable.ic_format_list_bulleted_white);
                     status = true;
                 }
 
-                layoutManager = new LinearLayoutManager(getBaseContext());
-                recyclerView.setLayoutManager(layoutManager);
-                contentAdapter = new ContentAdapter(getParent(), listData, layoutManager);
+                //layoutManager = new LinearLayoutManager(getBaseContext());
+                //recyclerView.setLayoutManager(layoutManager);
+                //contentAdapter = new ContentAdapter(getParent(), listData, layoutManager);
                 recyclerView.setAdapter(contentAdapter);
                 contentAdapter.notifyDataSetChanged();
             }
