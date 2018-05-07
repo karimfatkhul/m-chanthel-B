@@ -47,21 +47,9 @@ public class SearchActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.search_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_search);
-        toolbar.setNavigationIcon(getResources().getDrawable(R.drawable.ic_back_arrow));
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(getApplicationContext(),HomeActivity.class));
-            }
-        });
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         userName = preferences.getString("username", "");
         password = preferences.getString("password","");
-
-
 
         // On activity start check whether there is user previously logged in or not.
         if ((userName == "") & (password == "")) {
@@ -77,9 +65,26 @@ public class SearchActivity extends AppCompatActivity {
             Toast.makeText(SearchActivity.this, "Please Log in to continue", Toast.LENGTH_LONG).show();
         }
 
-
-
         pid = preferences.getString("pid","");
+        Toast.makeText(SearchActivity.this, pid, Toast.LENGTH_LONG).show();
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_search);
+        toolbar.setNavigationIcon(getResources().getDrawable(R.drawable.ic_back_arrow));
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //startActivity(new Intent(getApplicationContext(),HomeActivity.class));
+                Toast.makeText(SearchActivity.this, "back", Toast.LENGTH_LONG).show();
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(SearchActivity.this);
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putString("pid", pid);
+                editor.commit();
+                Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
+                startActivity(intent);
+            }
+        });
 
         //inisialisasi recyclerview untuk menampung data
         recyclerView = (RecyclerView) findViewById(R.id.search_recycler_content);

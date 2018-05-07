@@ -516,6 +516,10 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         int id = item.getItemId();
         switch (id) {
             case R.id.actionSearch:
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putString("pid", pid);
+                editor.commit();
                 Intent i = new Intent(HomeActivity.this, SearchActivity.class);
                 this.startActivity(i);
                 break;
