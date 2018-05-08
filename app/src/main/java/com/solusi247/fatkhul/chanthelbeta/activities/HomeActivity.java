@@ -147,8 +147,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View v) {
                 if (status == true) {
                     //mengganti mode tampilan ke list
-                    recyclerView.setLayoutManager(new LinearLayoutManager(getBaseContext()));
-                    //recyclerView.setAdapter(new ContentAdapter(getParent(), listData, recyclerView.getLayoutManager()));
+                    layoutManager = new LinearLayoutManager(getBaseContext());
+                    recyclerView.setLayoutManager(layoutManager);
 
                     ScrollView scrollView = (ScrollView) findViewById(R.id.scrollViewHome);
                     scrollView.setPadding(0, 0, 0, 65);
@@ -156,20 +156,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     imageView.setImageResource(R.drawable.ic_format_grid_white);
                     status = false;
                 } else {
-
                     //mengganti mode tampilan ke grid
-                    recyclerView.setLayoutManager(new GridLayoutManager(getBaseContext(), 2));
-                    //layoutManager = new GridLayoutManager(getBaseContext(), 2);
-                    //recyclerView.setLayoutManager(layoutManager);
-
+                    layoutManager = new GridLayoutManager(getBaseContext(), 2);
+                    recyclerView.setLayoutManager(layoutManager);
 
                     imageView.setImageResource(R.drawable.ic_format_list_bulleted_white);
                     status = true;
                 }
-
-                //layoutManager = new LinearLayoutManager(getBaseContext());
-                //recyclerView.setLayoutManager(layoutManager);
-                //contentAdapter = new ContentAdapter(getParent(), listData, layoutManager);
+                //contentAdapter = new ContentAdapter(HomeActivity.this, listData, layoutManager);
                 recyclerView.setAdapter(contentAdapter);
                 contentAdapter.notifyDataSetChanged();
             }

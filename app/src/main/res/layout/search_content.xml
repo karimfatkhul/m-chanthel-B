@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/home_constarint_layout"
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/home_constarint_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#fff"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context="com.solusi247.fatkhul.chanthelbeta.activities.SearchActivity"
-    tools:showIn="@layout/search_bar"
-    android:background="#fff">
+    tools:showIn="@layout/search_bar">
+
     <ScrollView
         android:id="@+id/scrollViewHome"
-        style="@android:style/Widget.Material.FastScroll"
-        android:scrollbarStyle="insideOverlay"
-        android:scrollbarFadeDuration="0"
-        android:scrollbars="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:scrollbarFadeDuration="0"
+        android:scrollbarStyle="insideOverlay"
+        android:scrollbars="vertical">
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -27,37 +27,39 @@
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/search_recycler_content"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-            </android.support.v7.widget.RecyclerView>
+                android:layout_height="wrap_content"></android.support.v7.widget.RecyclerView>
         </LinearLayout>
     </ScrollView>
+
     <android.support.constraint.ConstraintLayout
+        android:id="@+id/serach_message_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginTop="8dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:visibility="visible"
-        android:id="@+id/serach_message_layout">
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tampilan_sementara"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:textSize="14dp"
+            tools:layout_editor_absoluteX="0dp"
+            tools:layout_editor_absoluteY="293dp" />
+
 
         <TextView
             android:id="@+id/search_message"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
             android:textAlignment="center"
             android:textSize="14dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            tools:layout_editor_absoluteX="0dp"
+            tools:layout_editor_absoluteY="110dp" />
     </android.support.constraint.ConstraintLayout>
-
-
 </android.support.constraint.ConstraintLayout>
