@@ -22,6 +22,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -840,12 +841,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         Volley.newRequestQueue(this).add(jsonObjectRequest);
     }
 
-    public void UploadFile(final String fileNames, String filePathes) {
-        String urlCreateDirectory = "" + urlDirectory + "?u=" + userName + "&p=" + password + "&act=upload&fname=" + fileNames + "&fpath=" + filePathes + "&pid=" + pid + "";
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCreateDirectory, new Response.Listener<String>() {
+    public void UploadFile(final String fileNames, final String filePathes) {
+        //String urlCreateDirectory = "" + urlDirectory + "?u=" + userName + "&p=" + password + "&act=upload&fname=" + fileNames + "&fpath=" + filePathes + "&pid=" + pid + "";
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, urlDirectory, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-
+                // response
+                Log.d("Response", response);
+                showToast(response);
             }
         }, new Response.ErrorListener() {
             @Override
@@ -853,10 +856,16 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 showToast("Oopss!!!");
             }
         }) {
-            protected Map<String, String> getParams() throws AuthFailureError {
+            protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<String, String>();
-                params.put("Content-Type", "application/x-www-form-urlencoded");
-                params.put("Accept", "application/json");
+                params.put("filedata", filePathes);
+                params.put("u", userName);
+                params.put("p", password);
+                params.put("act", "upload");
+                params.put("fname", fileNames);
+                params.put("pid", pid);
+//                params.put("Content-Type", "application/x-www-form-urlencoded");
+//                params.put("Accept", "application/json");
 //                params.put("name",name);
                 return params;
             }
