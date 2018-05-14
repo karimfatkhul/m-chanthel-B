@@ -7,12 +7,14 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -56,8 +58,10 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -84,6 +88,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private String pid, lastPid;
     private TextView rootFolder;
     private String kontenFile;
+
+    private static final int REQUEST_ID_WRITE_PERMISSION = 200;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -252,12 +258,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 template_id = listData.get(position).getTemplate_id();
                                 item_id = listData.get(position).getId();
                                 if (template_id.matches("6")) {
+                                    fileName = listData.get(position).getName();
                                     final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
                                     builderDownload.setMessage("Are you sure you want to download this file ?")
                                             .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                                                 @Override
                                                 public void onClick(DialogInterface dialogInterface, int i) {
-                                                    downloadFile(item_id);
+                                                    downloadFile(item_id, fileName);
                                                 }
                                             }).setNegativeButton("Cancel", null);
                                     AlertDialog alert = builderDownload.create();
@@ -474,14 +481,15 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     // download file
-    private void downloadFile(String item_id) {
+    private void downloadFile(String item_id, final String fileName) {
         String urlRename = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
         StringRequest stringReq = new StringRequest(Request.Method.GET, urlRename, new Response.Listener<String>() {
             public void onResponse(String response) {
                 if (response.matches("error_code: 3")) {
                     showToast("sorry, download failed");
                 } else {
-                    showToast(response);
+                    //showToast(response);
+                    askPermissionAndWriteFile(response, fileName);
                 }
             }
         }, new Response.ErrorListener() {
@@ -491,29 +499,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         }
         );
-
-//        JsonObjectRequest jsonObjectReq = new JsonObjectRequest(Request.Method.GET, urlRename, null, new Response.Listener<JSONObject>() {
-//            @Override
-//            public void onResponse(JSONObject response) {
-//                try {
-//                    Integer errorCode = response.getInt("error_code");
-//                    if (errorCode.equals(3)) {
-//                        showToast("file not found");
-//                        //contentAdapter.notifyDataSetChanged();
-//
-//                    } else {
-//                        showToast("file has been download");
-//                    }
-//                } catch (JSONException e) {
-//                    showToast(e + "");
-//                }
-//            }
-//        }, new Response.ErrorListener() {
-//            @Override
-//            public void onErrorResponse(VolleyError error) {
-//                showToast(error.toString());
-//            }
-//        });
         Volley.newRequestQueue(this).add(stringReq);
     }
 
@@ -1013,5 +998,56 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         editor.commit();
         Intent intent = new Intent(HomeActivity.this, HomeActivity.class);
         startActivity(intent);
+    }
+
+    private void askPermissionAndWriteFile(String response, String fileName) {
+        boolean canWrite = this.askPermission(REQUEST_ID_WRITE_PERMISSION,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        //
+        if (canWrite) {
+            this.writeFile(response, fileName);
+        }
+    }
+
+    private void writeFile(String response, String fileName) {
+        File extStore = Environment.getExternalStorageDirectory();
+        // ==> /storage/emulated/0/<fileName>
+        String path = extStore.getAbsolutePath() + "/Download/" + fileName;
+        Log.i("ExternalStorageDemo", "Save to: " + path);
+
+        String data = response;
+
+        try {
+            File myFile = new File(path);
+            myFile.createNewFile();
+            FileOutputStream fOut = new FileOutputStream(myFile);
+            OutputStreamWriter myOutWriter = new OutputStreamWriter(fOut);
+            myOutWriter.append(data);
+            myOutWriter.close();
+            fOut.close();
+
+            Toast.makeText(getApplicationContext(), this.fileName + " saved", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean askPermission(int requestId, String permissionName) {
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+
+            // Check if we have permission
+            int permission = ActivityCompat.checkSelfPermission(this, permissionName);
+
+
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // If don't have permission so prompt the user.
+                this.requestPermissions(
+                        new String[]{permissionName},
+                        requestId
+                );
+                return false;
+            }
+        }
+        return true;
     }
 }
