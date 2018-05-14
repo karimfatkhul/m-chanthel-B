@@ -53,6 +53,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -78,6 +83,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private String userName, password, rootName, idfolder, namaContent, action, idRename, path, fileName, messej;
     private String pid, lastPid;
     private TextView rootFolder;
+    private String kontenFile;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -176,14 +182,17 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             public void onItemClickListener(View view, final int position) {
                 switch (view.getId()) {
                     case R.id.content_image:
-                        String cek = listData.get(position).getId();
-                        String foldernames = listData.get(position).getName();
-                        pid = cek.toString();
-                        lastPid = cek.toString();
-                        rootFolder.setText(foldernames);
-                        listData.clear();
-                        GetData(pid);
+                        //showToast(listData.get(position).getTemplate_id().toString());
+                        if (listData.get(position).getTemplate_id().toString().matches("5")) {
+                            String cek = listData.get(position).getId();
+                            String foldernames = listData.get(position).getName();
+                            pid = cek.toString();
+                            lastPid = cek.toString();
+                            rootFolder.setText(foldernames);
+                            listData.clear();
+                            GetData(pid);
 //                        showToast(pid);
+                        }
                         break;
 
                     case R.id.more_option:
@@ -418,6 +427,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
 
                 }
+
+                if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                    showToast("write permission ok");
+                }
+
                 new MaterialFilePicker()
                         .withActivity(HomeActivity.this)
                         .withRequestCode(1000)
@@ -842,23 +856,69 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void UploadFile(final String fileNames, final String filePathes) {
+//        Log.d("Input", fileNames);
+//        Log.d("Input", filePathes);
+//        Log.d("Input", urlDirectory);
+//        Log.d("Input", userName);
+//        Log.d("Input", password);
+//        Log.d("Input", pid);
+
+        // tambahan
+
+        File file = new File(filePathes);
+        try {
+            InputStream inputStream = new FileInputStream(file);
+            BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuilder total = new StringBuilder();
+            String line;
+
+            try {
+                while ((line = r.readLine()) != null) {
+                    total.append(line);
+                }
+            } catch (java.io.IOException e) {
+                showToast(e.toString());
+            }
+
+            kontenFile = total.toString();
+        } catch (java.io.FileNotFoundException e) {
+            showToast(e.toString());
+        }
+        // tambahan
+
         //String urlCreateDirectory = "" + urlDirectory + "?u=" + userName + "&p=" + password + "&act=upload&fname=" + fileNames + "&fpath=" + filePathes + "&pid=" + pid + "";
         StringRequest stringRequest = new StringRequest(Request.Method.POST, urlDirectory, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 // response
-                Log.d("Response", response);
-                showToast(response);
+                //Log.d("Response", response);
+                //showToast(response);
+                try {
+                    JSONObject jsonResponse = new JSONObject(response);
+                    int err_code = jsonResponse.getInt("err_code");
+                    String message = jsonResponse.getString("message");
+                    String fid = "";
+                    if (err_code == 0) {
+                        fid = jsonResponse.getString("fid");
+                    }
+
+                    showToast(err_code + " - " + message + " - " + fid);
+                    //String site = jsonResponse.getString("site"),
+                    //        network = jsonResponse.getString("network");
+                    //System.out.println("Site: " + site + "\nNetwork: " + network);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                showToast("Oopss!!!");
+                showToast("upload - " + error);
             }
         }) {
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<String, String>();
-                params.put("filedata", filePathes);
+                params.put("filedata", kontenFile);
                 params.put("u", userName);
                 params.put("p", password);
                 params.put("act", "upload");
