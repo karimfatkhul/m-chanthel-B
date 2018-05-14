@@ -241,6 +241,34 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         LinearLayout delete = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.delete);
                         LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
 
+                        // tambah download code start
+                        LinearLayout download = bottomDialogView.findViewById(R.id.download);
+
+                        download.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                final String template_id;
+                                final String item_id;
+                                template_id = listData.get(position).getTemplate_id();
+                                item_id = listData.get(position).getId();
+                                if (template_id.matches("6")) {
+                                    final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
+                                    builderDownload.setMessage("Are you sure you want to download this file ?")
+                                            .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                                @Override
+                                                public void onClick(DialogInterface dialogInterface, int i) {
+                                                    downloadFile(item_id);
+                                                }
+                                            }).setNegativeButton("Cancel", null);
+                                    AlertDialog alert = builderDownload.create();
+                                    alert.show();
+                                    bottomSheetDialogMoreOption.hide();
+                                }
+                            }
+                        });
+                        // tambah download code end
+
+
                         rename.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
@@ -443,6 +471,50 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+    }
+
+    // download file
+    private void downloadFile(String item_id) {
+        String urlRename = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
+        StringRequest stringReq = new StringRequest(Request.Method.GET, urlRename, new Response.Listener<String>() {
+            public void onResponse(String response) {
+                if (response.matches("error_code: 3")) {
+                    showToast("sorry, download failed");
+                } else {
+                    showToast(response);
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                showToast(error.toString());
+            }
+        }
+        );
+
+//        JsonObjectRequest jsonObjectReq = new JsonObjectRequest(Request.Method.GET, urlRename, null, new Response.Listener<JSONObject>() {
+//            @Override
+//            public void onResponse(JSONObject response) {
+//                try {
+//                    Integer errorCode = response.getInt("error_code");
+//                    if (errorCode.equals(3)) {
+//                        showToast("file not found");
+//                        //contentAdapter.notifyDataSetChanged();
+//
+//                    } else {
+//                        showToast("file has been download");
+//                    }
+//                } catch (JSONException e) {
+//                    showToast(e + "");
+//                }
+//            }
+//        }, new Response.ErrorListener() {
+//            @Override
+//            public void onErrorResponse(VolleyError error) {
+//                showToast(error.toString());
+//            }
+//        });
+        Volley.newRequestQueue(this).add(stringReq);
     }
 
     //inisialisasi method untuk menambahkan file baru (upload file)
