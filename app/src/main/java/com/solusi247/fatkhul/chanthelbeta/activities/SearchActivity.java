@@ -1,19 +1,26 @@
 package com.solusi247.fatkhul.chanthelbeta.activities;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.constraint.ConstraintLayout;
+import android.support.design.widget.BottomSheetDialog;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -105,6 +112,21 @@ public class SearchActivity extends AppCompatActivity {
 
         TextView pesan = (TextView) findViewById(R.id.search_message);
         pesan.setText("Please type what you want to search");
+
+
+        // jika image di klik maka akan dikirim ke HomeActivity
+        contentAdapter.setOnItemClickListener(new ContentAdapter.onRecyclerViewItemClickListener() {
+            @Override
+            public void onItemClickListener(View view, final int position) {
+                pid = listData.get(position).getPid();
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(SearchActivity.this);
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putString("pid", pid);
+                editor.commit();
+                Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
