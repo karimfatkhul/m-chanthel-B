@@ -56,14 +56,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1013,25 +1017,55 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private void writeFile(String response, String fileName) {
-        InputStream targetStream = new ByteArrayInputStream(response.getBytes(Charset.forName("UTF-8")));
+    private void writeFile (String data, String fileName){
+        File root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 
-        File dst = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download/" + fileName);
+        //File root = Environment.getExternalStorageDirectory();
+        File outDir = new File(root.getAbsolutePath() + File.separator);
 
-        try (InputStream in = targetStream) {
-            try (OutputStream out = new FileOutputStream(dst)) {
-                // Transfer bytes from in to out
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
-                }
-                showToast(fileName + " donwloaded");
+        showToast(root.getAbsolutePath()+File.separator);
+
+        if (!outDir.isDirectory()) {
+            outDir.mkdir();
+        }
+        try {
+            if (!outDir.isDirectory()) {
+                throw new IOException(
+                        "Unable to create directory EZ_time_tracker. Maybe the SD card is mounted?");
             }
-        } catch (Exception e) {
-            showToast(e.toString());
+            File outputFile = new File(outDir, fileName);
+            Writer writer = new BufferedWriter(new FileWriter(outputFile));
+            writer.write(data);
+            Toast.makeText(HomeActivity.this.getApplicationContext(),
+                    "Report successfully saved to: " + outputFile.getAbsolutePath(),
+                    Toast.LENGTH_LONG).show();
+            writer.close();
+        } catch (IOException e) {
+            Log.w("eztt", e.getMessage(), e);
+            Toast.makeText(HomeActivity.this, e.getMessage() + " Unable to write to external storage.",
+                    Toast.LENGTH_LONG).show();
         }
     }
+
+//    private void writeFile(String response, String fileName) {
+//        InputStream targetStream = new ByteArrayInputStream(response.getBytes(Charset.forName("UTF-8")));
+//
+//        File dst = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download/" + fileName);
+//
+//        try (InputStream in = targetStream) {
+//            try (OutputStream out = new FileOutputStream(dst)) {
+//                // Transfer bytes from in to out
+//                byte[] buf = new byte[1024];
+//                int len;
+//                while ((len = in.read(buf)) > 0) {
+//                    out.write(buf, 0, len);
+//                }
+//                showToast(fileName + " donwloaded");
+//            }
+//        } catch (Exception e) {
+//            showToast(e.toString());
+//        }
+//    }
 
 //    private void writeFile(String response, String fileName) {
 //        File extStore = Environment.getExternalStorageDirectory();
