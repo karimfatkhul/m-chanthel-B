@@ -634,6 +634,12 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                             editor.clear();
                             editor.apply();
 
+                            // broadcast logout signal to all activity
+                            Intent broadcastIntent = new Intent();
+                            broadcastIntent.setAction("com.package.ACTION_LOGOUT");
+                            sendBroadcast(broadcastIntent);
+                            // broadcast logout signal to all activity
+
                             finish();
 
                             Intent i = new Intent(HomeActivity.this, LoginActivity.class);
@@ -1017,13 +1023,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private void writeFile (String data, String fileName){
+    private void writeFile(String data, String fileName) {
         File root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 
         //File root = Environment.getExternalStorageDirectory();
         File outDir = new File(root.getAbsolutePath() + File.separator);
 
-        showToast(root.getAbsolutePath()+File.separator);
+        showToast(root.getAbsolutePath() + File.separator);
 
         if (!outDir.isDirectory()) {
             outDir.mkdir();
