@@ -56,12 +56,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -89,6 +92,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private TextView rootFolder;
     private String kontenFile;
 
+    private static final int REQUEST_ID_READ_PERMISSION = 100;
     private static final int REQUEST_ID_WRITE_PERMISSION = 200;
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -518,20 +522,20 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    //inisialisasi method untuk meminta akses terhadap external storage
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case 1001: {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Permission granteed", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(this, "Permission not granteed", Toast.LENGTH_SHORT).show();
-                    finish();
-                }
-            }
-        }
-    }
+//    //inisialisasi method untuk meminta akses terhadap external storage
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        switch (requestCode) {
+//            case 1001: {
+//                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                    Toast.makeText(this, "Permission granteed", Toast.LENGTH_SHORT).show();
+//                } else {
+//                    Toast.makeText(this, "Permission not granteed", Toast.LENGTH_SHORT).show();
+//                    finish();
+//                }
+//            }
+//        }
+//    }
 
     //inisialisasi method toas untuk menampilkan informasi
     private void showToast(String text) {
@@ -1010,27 +1014,47 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void writeFile(String response, String fileName) {
-        File extStore = Environment.getExternalStorageDirectory();
-        // ==> /storage/emulated/0/<fileName>
-        String path = extStore.getAbsolutePath() + "/Download/" + fileName;
-        Log.i("ExternalStorageDemo", "Save to: " + path);
+        InputStream targetStream = new ByteArrayInputStream(response.getBytes(Charset.forName("UTF-8")));
 
-        String data = response;
+        File dst = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download/" + fileName);
 
-        try {
-            File myFile = new File(path);
-            myFile.createNewFile();
-            FileOutputStream fOut = new FileOutputStream(myFile);
-            OutputStreamWriter myOutWriter = new OutputStreamWriter(fOut);
-            myOutWriter.append(data);
-            myOutWriter.close();
-            fOut.close();
-
-            Toast.makeText(getApplicationContext(), this.fileName + " saved", Toast.LENGTH_LONG).show();
+        try (InputStream in = targetStream) {
+            try (OutputStream out = new FileOutputStream(dst)) {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+                showToast(fileName + " donwloaded");
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            showToast(e.toString());
         }
     }
+
+//    private void writeFile(String response, String fileName) {
+//        File extStore = Environment.getExternalStorageDirectory();
+//        // ==> /storage/emulated/0/<fileName>
+//        String path = extStore.getAbsolutePath() + "/Download/" + fileName;
+//        Log.i("ExternalStorageDemo", "Save to: " + path);
+//
+//        String data = response;
+//
+//        try {
+//            File myFile = new File(path);
+//            myFile.createNewFile();
+//            FileOutputStream fOut = new FileOutputStream(myFile);
+//            OutputStreamWriter myOutWriter = new OutputStreamWriter(fOut);
+//            myOutWriter.append(data);
+//            myOutWriter.close();
+//            fOut.close();
+//
+//            Toast.makeText(getApplicationContext(), this.fileName + " saved", Toast.LENGTH_LONG).show();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     private boolean askPermission(int requestId, String permissionName) {
         if (android.os.Build.VERSION.SDK_INT >= 23) {
@@ -1049,5 +1073,34 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         }
         return true;
+    }
+
+    // When you have the request results
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        //
+        // Note: If request is cancelled, the result arrays are empty.
+        if (grantResults.length > 0) {
+            switch (requestCode) {
+                case REQUEST_ID_READ_PERMISSION: {
+                    if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        Toast.makeText(this, "Read permission granted", Toast.LENGTH_SHORT).show();
+                        //readFile();
+                    }
+                }
+                case REQUEST_ID_WRITE_PERMISSION: {
+                    Toast.makeText(this, "Write permission granted", Toast.LENGTH_SHORT).show();
+                    if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        Toast.makeText(this, "Write permission granted", Toast.LENGTH_SHORT).show();
+                        //writeFile(response);
+                    }
+                }
+            }
+        } else {
+            Toast.makeText(getApplicationContext(), "Permission Cancelled!", Toast.LENGTH_SHORT).show();
+        }
     }
 }
