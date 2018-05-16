@@ -217,8 +217,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         TextView contentName = (TextView) bottomDialogView.findViewById(R.id.more_option_content_name);
                         LinearLayout linearLayout = (LinearLayout) bottomDialogView.findViewById(R.id.preview);
                         linearLayout.setVisibility(View.GONE);
-                        View border = (View) bottomDialogView.findViewById(R.id.border_preview);
-                        border.setVisibility(View.GONE);
+                        //View border = (View) bottomDialogView.findViewById(R.id.border_preview);
+                        //border.setVisibility(View.GONE);
                         ImageView chat = (ImageView) bottomDialogView.findViewById(R.id.chat);
                         chat.setVisibility(View.GONE);
                         ImageView thumbnail = (ImageView) bottomDialogView.findViewById(R.id.more_option_thumbnail);
