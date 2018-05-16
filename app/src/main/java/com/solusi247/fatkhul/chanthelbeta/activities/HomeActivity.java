@@ -596,6 +596,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 editor.commit();
                 Intent i = new Intent(HomeActivity.this, SearchActivity.class);
                 this.startActivity(i);
+                finish();
                 break;
             case R.id.actionNotification:
 //                Intent intent = new Intent(HomeActivity.this, NotificationActivity.class);
@@ -640,10 +641,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                             sendBroadcast(broadcastIntent);
                             // broadcast logout signal to all activity
 
-                            finish();
+                            //finish();
 
                             Intent i = new Intent(HomeActivity.this, LoginActivity.class);
                             startActivity(i);
+                            finish();
                         }
                     })
                     .setNegativeButton("Cancel", null);
