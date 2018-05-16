@@ -1,7 +1,10 @@
 package com.solusi247.fatkhul.chanthelbeta.activities;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -13,6 +16,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -92,6 +96,7 @@ public class SearchActivity extends AppCompatActivity {
 //                editor.commit();
                 Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
                 startActivity(intent);
+                finish();
             }
         });
 
@@ -125,8 +130,20 @@ public class SearchActivity extends AppCompatActivity {
                 editor.commit();
                 Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
                 startActivity(intent);
+                finish();
             }
         });
+
+//        // logout signal receiver
+//        IntentFilter intentFilter = new IntentFilter();
+//        intentFilter.addAction("com.package.ACTION_LOGOUT");
+//        registerReceiver(new BroadcastReceiver() {
+//            @Override
+//            public void onReceive(Context context, Intent intent) {
+//                Log.d("onReceive", "Logout in progress");
+//                finish();
+//            }
+//        }, intentFilter);
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -262,5 +279,10 @@ public class SearchActivity extends AppCompatActivity {
                 }
         );
         Volley.newRequestQueue(SearchActivity.this).add(jsonObjectReq);
+    }
+
+
+    public void onBackPressed() {
+        finish();
     }
 }
