@@ -554,6 +554,12 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     public void onBackPressed() {
         if (lastPid.equals("1")) {
             if (doubleBackToExitPressedOnce) {
+                // broadcast logout signal to all activity
+                Intent broadcastIntent = new Intent();
+                broadcastIntent.setAction("com.package.ACTION_LOGOUT");
+                sendBroadcast(broadcastIntent);
+                // broadcast logout signal to all activity
+
                 Intent i = new Intent(HomeActivity.this, LoginActivity.class);
                 startActivity(i);
                 finish();
