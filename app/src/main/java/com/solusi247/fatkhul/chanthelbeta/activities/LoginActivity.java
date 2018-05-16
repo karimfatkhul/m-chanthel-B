@@ -130,7 +130,8 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Toast.makeText(LoginActivity.this, error+"", Toast.LENGTH_SHORT).show();
+                Toast.makeText(LoginActivity.this, "Sorry, something wrong with your internet connection", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(LoginActivity.this, error+"", Toast.LENGTH_SHORT).show();
             }
         });
         Volley.newRequestQueue(this).add(jsonObjectRequest);
