@@ -115,8 +115,8 @@ public class SearchActivity extends AppCompatActivity {
         recyclerView.setAdapter(contentAdapter);
         contentAdapter.notifyDataSetChanged();
 
-        TextView pesan = (TextView) findViewById(R.id.search_message);
-        pesan.setText("Please type what you want to search");
+//        TextView pesan = (TextView) findViewById(R.id.search_message);
+//        pesan.setText("Please type what you want to search");
 
 
         // jika image di klik maka akan dikirim ke HomeActivity
@@ -152,7 +152,8 @@ public class SearchActivity extends AppCompatActivity {
         inflater.inflate(R.menu.menu_search, menu);
         MenuItem item = menu.findItem(R.id.search_list);
         SearchView searchView = (SearchView) item.getActionView();
-        searchView.setIconifiedByDefault(true);
+        searchView.setQueryHint("Search here");
+        searchView.setIconifiedByDefault(false);
         searchView.setFocusable(true);
         searchView.setIconified(false);
         searchView.requestFocusFromTouch();
@@ -162,12 +163,21 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 if (query.length() < 3) {
+                    showToast("12");
+
+                    listData.clear();
+                    contentAdapter.notifyDataSetChanged();
+
+                    ConstraintLayout constraintLayout = (ConstraintLayout) findViewById(R.id.serach_message_layout);
+                    constraintLayout.setVisibility(View.VISIBLE);
                     TextView pesan = (TextView) findViewById(R.id.search_message);
                     pesan.setText("Type with minimum 3 character");
                 } else {
                     if (firstquery) {
+                        showToast("other");
                         GetData(query);
                     } else {
+                        showToast("first");
                         GetData(query);
                         firstquery = true;
                     }
@@ -177,13 +187,13 @@ public class SearchActivity extends AppCompatActivity {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                if (newText.equals("")) {
-                    listData.clear();
-                    ConstraintLayout constraintLayout = (ConstraintLayout) findViewById(R.id.serach_message_layout);
-                    constraintLayout.setVisibility(View.VISIBLE);
-                    TextView pesan = (TextView) findViewById(R.id.search_message);
-                    pesan.setText("Please type what you want to search");
-                }
+//                if (newText.equals("")) {
+//                    listData.clear();
+//                    ConstraintLayout constraintLayout = (ConstraintLayout) findViewById(R.id.serach_message_layout);
+//                    constraintLayout.setVisibility(View.VISIBLE);
+//                    TextView pesan = (TextView) findViewById(R.id.search_message);
+//                    pesan.setText("Please type what you want to search");
+//                }
                 return false;
             }
         });
@@ -251,10 +261,12 @@ public class SearchActivity extends AppCompatActivity {
                             }
                         }
                     } else {
+                        listData.clear();
+                        contentAdapter.notifyDataSetChanged();
                         ConstraintLayout constraintLayout = (ConstraintLayout) findViewById(R.id.serach_message_layout);
                         constraintLayout.setVisibility(View.VISIBLE);
                         TextView pesan = (TextView) findViewById(R.id.search_message);
-                        pesan.setText("Ooops item not found - else");
+                        pesan.setText("Sorry, item not found");
 
                     }
 
