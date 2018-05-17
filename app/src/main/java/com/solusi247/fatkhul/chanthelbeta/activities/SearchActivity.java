@@ -163,7 +163,7 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 if (query.length() < 3) {
-                    showToast("12");
+                    //showToast("12");
 
                     listData.clear();
                     contentAdapter.notifyDataSetChanged();
@@ -174,10 +174,10 @@ public class SearchActivity extends AppCompatActivity {
                     pesan.setText("Type with minimum 3 character");
                 } else {
                     if (firstquery) {
-                        showToast("other");
+                        //showToast("other");
                         GetData(query);
                     } else {
-                        showToast("first");
+                        //showToast("first");
                         GetData(query);
                         firstquery = true;
                     }
