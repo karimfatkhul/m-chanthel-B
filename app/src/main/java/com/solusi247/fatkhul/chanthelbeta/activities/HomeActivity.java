@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetDialog;
@@ -190,10 +191,21 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
-
         contentAdapter.setOnItemClickListener(new ContentAdapter.onRecyclerViewItemClickListener() {
             @Override
-            public void onItemClickListener(View view, final int position) {
+            public void onItemClickListener(final View view, final int position) {
+
+                // prevent multiple click - start
+                view.setClickable(false);
+
+                view.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        view.setClickable(true);
+                    }
+                }, 500);
+                // prevent multiple click - end
+
                 switch (view.getId()) {
                     case R.id.content_image:
                         //showToast(listData.get(position).getTemplate_id().toString());
@@ -248,7 +260,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         namaContent = listData.get(position).getName();
                         contentName.setText(namaContent);
                         bottomSheetDialogMoreOption.show();
-
                         LinearLayout copy = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.copy);
                         LinearLayout paste = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.paste);
                         final LinearLayout rename = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.rename);

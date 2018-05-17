@@ -90,7 +90,18 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
     }
 
     //    Method ketika button login diklik
-    public void loginCheck(View view){
+    public void loginCheck(final View view){
+
+        // prevent multiple click - start
+        view.setClickable(false);
+
+        view.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                view.setClickable(true);
+            }
+        }, 500);
+        // prevent multiple click - end
 
         EditText textUserName = (EditText)findViewById(R.id.text_username);
         EditText textPassword = (EditText)findViewById(R.id.text_password);
