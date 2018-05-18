@@ -1215,7 +1215,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 NotificationCompat.Builder mBuilder =
                         new NotificationCompat.Builder(HomeActivity.this)
                                 .setSmallIcon(R.mipmap.ic_launcher)
-                                .setContentTitle("GadgetSaint")
+                                .setContentTitle("Chanthel")
                                 .setContentText("All Download completed");
 
 
