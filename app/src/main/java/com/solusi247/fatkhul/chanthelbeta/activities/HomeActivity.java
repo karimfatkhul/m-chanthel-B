@@ -1,21 +1,26 @@
 package com.solusi247.fatkhul.chanthelbeta.activities;
 
 import android.Manifest;
+import android.app.DownloadManager;
+import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.SystemClock;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -37,7 +42,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -58,18 +62,13 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -99,6 +98,10 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     private static final int REQUEST_ID_READ_PERMISSION = 100;
     private static final int REQUEST_ID_WRITE_PERMISSION = 200;
+
+    private DownloadManager downloadManager;
+    ArrayList<Long> list = new ArrayList<>();
+    private long refid;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -188,6 +191,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 //contentAdapter = new ContentAdapter(HomeActivity.this, listData, layoutManager);
                 recyclerView.setAdapter(contentAdapter);
                 contentAdapter.notifyDataSetChanged();
+
             }
         });
 
@@ -227,8 +231,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         bottomSheetDialogMoreOption.setContentView(bottomDialogView);
 
                         TextView contentName = (TextView) bottomDialogView.findViewById(R.id.more_option_content_name);
-                        LinearLayout linearLayout = (LinearLayout) bottomDialogView.findViewById(R.id.preview);
-                        linearLayout.setVisibility(View.GONE);
+//                        LinearLayout linearLayout = (LinearLayout) bottomDialogView.findViewById(R.id.preview);
+//                        linearLayout.setVisibility(View.GONE);
                         //View border = (View) bottomDialogView.findViewById(R.id.border_preview);
                         //border.setVisibility(View.GONE);
                         ImageView chat = (ImageView) bottomDialogView.findViewById(R.id.chat);
@@ -264,10 +268,37 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         LinearLayout paste = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.paste);
                         final LinearLayout rename = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.rename);
                         LinearLayout delete = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.delete);
-                        LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
+                        //LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
 
                         // tambah download code start
                         LinearLayout download = bottomDialogView.findViewById(R.id.download);
+                        LinearLayout preview = bottomDialogView.findViewById(R.id.preview);
+
+                        preview.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                final String template_id;
+                                final String item_id;
+                                template_id = listData.get(position).getTemplate_id();
+                                item_id = listData.get(position).getId();
+                                if (template_id.matches("6")) {
+                                    fileName = listData.get(position).getName();
+                                    getLinkPreview(item_id, fileName);
+                                    bottomSheetDialogMoreOption.hide();
+//                                    final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
+//                                    builderDownload.setMessage("Are you sure you want to preview this file ?")
+//                                            .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+//                                                @Override
+//                                                public void onClick(DialogInterface dialogInterface, int i) {
+//                                                    fungsiDownload(item_id, fileName);
+//                                                }
+//                                            }).setNegativeButton("Cancel", null);
+//                                    AlertDialog alert = builderDownload.create();
+//                                    alert.show();
+//                                    bottomSheetDialogMoreOption.hide();
+                                }
+                            }
+                        });
 
                         download.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -283,7 +314,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                             .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                                                 @Override
                                                 public void onClick(DialogInterface dialogInterface, int i) {
-                                                    downloadFile(item_id, fileName);
+                                                    fungsiDownload(item_id, fileName);
                                                 }
                                             }).setNegativeButton("Cancel", null);
                                     AlertDialog alert = builderDownload.create();
@@ -497,18 +528,28 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+        downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+
+        if (!askPermission(REQUEST_ID_WRITE_PERMISSION, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+        }
     }
 
-    // download file
-    private void downloadFile(String item_id, final String fileName) {
-        String urlRename = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
-        StringRequest stringReq = new StringRequest(Request.Method.GET, urlRename, new Response.Listener<String>() {
-            public void onResponse(String response) {
-                if (response.matches("error_code: 3")) {
-                    showToast("sorry, download failed");
-                } else {
-                    //showToast(response);
-                    askPermissionAndWriteFile(response, fileName);
+    private void getLinkPreview(final String item_id, final String fileName) {
+        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file&fid=" + item_id;
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, apiPreview, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    if (response.getInt("error_code") == 3) {
+                        showToast("sorry, something wrong");
+                    } else {
+                        String urlPReview = response.getString("url");
+                        fungsiPreview(urlPReview, fileName);
+                    }
+                } catch (org.json.JSONException err) {
+                    showToast(err.toString());
                 }
             }
         }, new Response.ErrorListener() {
@@ -518,8 +559,50 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         }
         );
-        Volley.newRequestQueue(this).add(stringReq);
+        Volley.newRequestQueue(this).add(jsonObjectRequest);
     }
+
+    private void fungsiPreview(String url_Preview, String fileName) {
+        list.clear();
+
+        Uri Download_Uri = Uri.parse(url_Preview.replaceFirst("http://yava-228.solusi247.com", "http://192.168.1.228"));
+
+        DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
+        request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
+        request.setAllowedOverRoaming(false);
+        request.setTitle("Chanthel Downloading " + fileName);
+        request.setDescription("Downloading " + fileName);
+        request.setVisibleInDownloadsUi(true);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/Chanthel/" + "/" + fileName);
+
+        refid = downloadManager.enqueue(request);
+
+        Log.e("OUT", "" + refid);
+
+        list.add(refid);
+    }
+
+    // download file
+//    private void downloadFile(String item_id, final String fileName) {
+//        String urlRename = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
+//        StringRequest stringReq = new StringRequest(Request.Method.GET, urlRename, new Response.Listener<String>() {
+//            public void onResponse(String response) {
+//                if (response.matches("error_code: 3")) {
+//                    showToast("sorry, download failed");
+//                } else {
+//                    //showToast(response);
+//                    askPermissionAndWriteFile(response, fileName);
+//                }
+//            }
+//        }, new Response.ErrorListener() {
+//            @Override
+//            public void onErrorResponse(VolleyError error) {
+//                showToast(error.toString());
+//            }
+//        }
+//        );
+//        Volley.newRequestQueue(this).add(stringReq);
+//    }
 
     //inisialisasi method untuk menambahkan file baru (upload file)
     @Override
@@ -1162,4 +1245,59 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             Toast.makeText(getApplicationContext(), "Permission Cancelled!", Toast.LENGTH_SHORT).show();
         }
     }
+
+    // fungsi download baru
+    private void fungsiDownload(String item_id, String fileName) {
+        list.clear();
+
+        String urlDownload = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
+        Uri Download_Uri = Uri.parse(urlDownload);
+
+        DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
+        request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
+        request.setAllowedOverRoaming(false);
+        request.setTitle("Chanthel Downloading " + fileName);
+        request.setDescription("Downloading " + fileName);
+        request.setVisibleInDownloadsUi(true);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/Chanthel/" + "/" + fileName);
+
+        refid = downloadManager.enqueue(request);
+
+        Log.e("OUT", "" + refid);
+
+        list.add(refid);
+    }
+
+    BroadcastReceiver onComplete = new BroadcastReceiver() {
+
+        public void onReceive(Context ctxt, Intent intent) {
+
+
+            long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+
+
+            Log.e("IN", "" + referenceId);
+
+            list.remove(referenceId);
+
+
+            if (list.isEmpty()) {
+
+
+                Log.e("INSIDE", "" + referenceId);
+                NotificationCompat.Builder mBuilder =
+                        new NotificationCompat.Builder(HomeActivity.this)
+                                .setSmallIcon(R.mipmap.ic_launcher)
+                                .setContentTitle("Chanthel")
+                                .setContentText("All Download completed");
+
+
+                NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                notificationManager.notify(455, mBuilder.build());
+
+
+            }
+
+        }
+    };
 }
