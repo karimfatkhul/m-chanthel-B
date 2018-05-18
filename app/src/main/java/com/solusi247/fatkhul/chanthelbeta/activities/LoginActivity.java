@@ -90,7 +90,18 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
     }
 
     //    Method ketika button login diklik
-    public void loginCheck(View view){
+    public void loginCheck(final View view){
+
+        // prevent multiple click - start
+        view.setClickable(false);
+
+        view.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                view.setClickable(true);
+            }
+        }, 500);
+        // prevent multiple click - end
 
         EditText textUserName = (EditText)findViewById(R.id.text_username);
         EditText textPassword = (EditText)findViewById(R.id.text_password);
@@ -104,8 +115,6 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
 
                     if (pesan.equals("Success login")){
                         Toast.makeText(LoginActivity.this,pesan+"",Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(LoginActivity.this,HomeActivity.class);
-                        startActivity(intent);
 
                         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(LoginActivity.this);
                         SharedPreferences.Editor editor = preferences.edit();
@@ -115,6 +124,11 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
                         editor.putString("pid", "1");
                         editor.putString("rootname", "Task");
                         editor.commit();
+
+                        finish();
+
+                        Intent intent = new Intent(LoginActivity.this,HomeActivity.class);
+                        startActivity(intent);
                     }
                     else if(pesan.equals("Error username or password")){
                         Toast.makeText(LoginActivity.this,"Username and password doesn't match",Toast.LENGTH_SHORT).show();
@@ -127,7 +141,8 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Toast.makeText(LoginActivity.this, error+"", Toast.LENGTH_SHORT).show();
+                Toast.makeText(LoginActivity.this, "Sorry, something wrong with your internet connection", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(LoginActivity.this, error+"", Toast.LENGTH_SHORT).show();
             }
         });
         Volley.newRequestQueue(this).add(jsonObjectRequest);

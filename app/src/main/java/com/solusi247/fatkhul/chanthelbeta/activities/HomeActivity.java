@@ -1,18 +1,26 @@
 package com.solusi247.fatkhul.chanthelbeta.activities;
 
 import android.Manifest;
+import android.app.DownloadManager;
+import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -22,6 +30,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -33,7 +42,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -52,6 +60,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -77,6 +94,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private String userName, password, rootName, idfolder, namaContent, action, idRename, path, fileName, messej;
     private String pid, lastPid;
     private TextView rootFolder;
+    private String kontenFile;
+
+    private static final int REQUEST_ID_READ_PERMISSION = 100;
+    private static final int REQUEST_ID_WRITE_PERMISSION = 200;
+
+    private DownloadManager downloadManager;
+    ArrayList<Long> list = new ArrayList<>();
+    private long refid;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,6 +126,23 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         userName = preferences.getString("username", "");
         password = preferences.getString("password", "");
+
+
+        // On activity start check whether there is user previously logged in or not.
+        if ((userName == "") & (password == "")) {
+
+            // Finishing current Profile activity.
+            finish();
+
+            // If user already not log in then Redirect to LoginActivity .
+            Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+            startActivity(intent);
+
+            // Showing toast message.
+            Toast.makeText(HomeActivity.this, "Please Log in to continue", Toast.LENGTH_LONG).show();
+        }
+
+
         urlDirectory = preferences.getString("urlAPI", "");
         pid = preferences.getString("pid", "");
         lastPid = pid;
@@ -130,8 +172,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View v) {
                 if (status == true) {
                     //mengganti mode tampilan ke list
-                    recyclerView.setLayoutManager(new LinearLayoutManager(getBaseContext()));
-                    recyclerView.setAdapter(new ContentAdapter(getParent(), listData, recyclerView.getLayoutManager()));
+                    layoutManager = new LinearLayoutManager(getBaseContext());
+                    recyclerView.setLayoutManager(layoutManager);
 
                     ScrollView scrollView = (ScrollView) findViewById(R.id.scrollViewHome);
                     scrollView.setPadding(0, 0, 0, 65);
@@ -139,39 +181,48 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     imageView.setImageResource(R.drawable.ic_format_grid_white);
                     status = false;
                 } else {
-
                     //mengganti mode tampilan ke grid
-
                     layoutManager = new GridLayoutManager(getBaseContext(), 2);
                     recyclerView.setLayoutManager(layoutManager);
-
 
                     imageView.setImageResource(R.drawable.ic_format_list_bulleted_white);
                     status = true;
                 }
-
-                layoutManager = new LinearLayoutManager(getBaseContext());
-                recyclerView.setLayoutManager(layoutManager);
-                contentAdapter = new ContentAdapter(getParent(), listData, layoutManager);
+                //contentAdapter = new ContentAdapter(HomeActivity.this, listData, layoutManager);
                 recyclerView.setAdapter(contentAdapter);
                 contentAdapter.notifyDataSetChanged();
+
             }
         });
 
-
         contentAdapter.setOnItemClickListener(new ContentAdapter.onRecyclerViewItemClickListener() {
             @Override
-            public void onItemClickListener(View view, final int position) {
+            public void onItemClickListener(final View view, final int position) {
+
+                // prevent multiple click - start
+                view.setClickable(false);
+
+                view.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        view.setClickable(true);
+                    }
+                }, 500);
+                // prevent multiple click - end
+
                 switch (view.getId()) {
                     case R.id.content_image:
-                        String cek = listData.get(position).getId();
-                        String foldernames = listData.get(position).getName();
-                        pid = cek.toString();
-                        lastPid = cek.toString();
-                        rootFolder.setText(foldernames);
-                        listData.clear();
-                        GetData(pid);
+                        //showToast(listData.get(position).getTemplate_id().toString());
+                        if (listData.get(position).getTemplate_id().toString().matches("5")) {
+                            String cek = listData.get(position).getId();
+                            String foldernames = listData.get(position).getName();
+                            pid = cek.toString();
+                            lastPid = cek.toString();
+                            rootFolder.setText(foldernames);
+                            listData.clear();
+                            GetData(pid);
 //                        showToast(pid);
+                        }
                         break;
 
                     case R.id.more_option:
@@ -182,8 +233,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         TextView contentName = (TextView) bottomDialogView.findViewById(R.id.more_option_content_name);
                         LinearLayout linearLayout = (LinearLayout) bottomDialogView.findViewById(R.id.preview);
                         linearLayout.setVisibility(View.GONE);
-                        View border = (View) bottomDialogView.findViewById(R.id.border_preview);
-                        border.setVisibility(View.GONE);
+                        //View border = (View) bottomDialogView.findViewById(R.id.border_preview);
+                        //border.setVisibility(View.GONE);
                         ImageView chat = (ImageView) bottomDialogView.findViewById(R.id.chat);
                         chat.setVisibility(View.GONE);
                         ImageView thumbnail = (ImageView) bottomDialogView.findViewById(R.id.more_option_thumbnail);
@@ -213,12 +264,40 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         namaContent = listData.get(position).getName();
                         contentName.setText(namaContent);
                         bottomSheetDialogMoreOption.show();
-
                         LinearLayout copy = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.copy);
                         LinearLayout paste = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.paste);
                         final LinearLayout rename = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.rename);
                         LinearLayout delete = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.delete);
                         LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
+
+                        // tambah download code start
+                        LinearLayout download = bottomDialogView.findViewById(R.id.download);
+
+                        download.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                final String template_id;
+                                final String item_id;
+                                template_id = listData.get(position).getTemplate_id();
+                                item_id = listData.get(position).getId();
+                                if (template_id.matches("6")) {
+                                    fileName = listData.get(position).getName();
+                                    final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
+                                    builderDownload.setMessage("Are you sure you want to download this file ?")
+                                            .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                                @Override
+                                                public void onClick(DialogInterface dialogInterface, int i) {
+                                                    fungsiDownload(item_id, fileName);
+                                                }
+                                            }).setNegativeButton("Cancel", null);
+                                    AlertDialog alert = builderDownload.create();
+                                    alert.show();
+                                    bottomSheetDialogMoreOption.hide();
+                                }
+                            }
+                        });
+                        // tambah download code end
+
 
                         rename.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -260,6 +339,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                     }
                                                     dialog.dismiss();
 
+                                                    restartActivity(pid);
+
 
                                                 } catch (Exception e) {
                                                     showToast(e + "");
@@ -280,6 +361,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 bottomSheetDialogMoreOption.hide();
                             }
                         });
+
                         //delete belum bisa automatic refresh
                         delete.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -299,7 +381,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                     showToast("Delete Success");
                                                     dialog.dismiss();
                                                     listData.clear();
-                                                    GetData(pid);
+                                                    //GetData(pid);
+
+                                                    restartActivity(pid);
 
                                                 } catch (Exception e) {
                                                     showToast(e + "");
@@ -351,6 +435,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+        // nambah folder
         add_folder.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -372,8 +457,10 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                     contentAdapter.notifyDataSetChanged();
                                     showToast("Folder has been created");
                                     dialog.dismiss();
-                                    GetData(pid);
+                                    //GetData(pid);
 //                                    showToast(pid+"");
+
+                                    restartActivity(pid);
 
                                 } catch (Exception e) {
                                     showToast(e + "");
@@ -398,6 +485,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
 
                 }
+
+                if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                    showToast("write permission ok");
+                }
+
                 new MaterialFilePicker()
                         .withActivity(HomeActivity.this)
                         .withRequestCode(1000)
@@ -409,6 +501,34 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+        downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+
+        if (!askPermission(REQUEST_ID_WRITE_PERMISSION, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+        }
+    }
+
+    // download file
+    private void downloadFile(String item_id, final String fileName) {
+        String urlRename = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
+        StringRequest stringReq = new StringRequest(Request.Method.GET, urlRename, new Response.Listener<String>() {
+            public void onResponse(String response) {
+                if (response.matches("error_code: 3")) {
+                    showToast("sorry, download failed");
+                } else {
+                    //showToast(response);
+                    askPermissionAndWriteFile(response, fileName);
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                showToast(error.toString());
+            }
+        }
+        );
+        Volley.newRequestQueue(this).add(stringReq);
     }
 
     //inisialisasi method untuk menambahkan file baru (upload file)
@@ -427,20 +547,20 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    //inisialisasi method untuk meminta akses terhadap external storage
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case 1001: {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Permission granteed", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(this, "Permission not granteed", Toast.LENGTH_SHORT).show();
-                    finish();
-                }
-            }
-        }
-    }
+//    //inisialisasi method untuk meminta akses terhadap external storage
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        switch (requestCode) {
+//            case 1001: {
+//                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                    Toast.makeText(this, "Permission granteed", Toast.LENGTH_SHORT).show();
+//                } else {
+//                    Toast.makeText(this, "Permission not granteed", Toast.LENGTH_SHORT).show();
+//                    finish();
+//                }
+//            }
+//        }
+//    }
 
     //inisialisasi method toas untuk menampilkan informasi
     private void showToast(String text) {
@@ -455,6 +575,12 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     public void onBackPressed() {
         if (lastPid.equals("1")) {
             if (doubleBackToExitPressedOnce) {
+                // broadcast logout signal to all activity
+                Intent broadcastIntent = new Intent();
+                broadcastIntent.setAction("com.package.ACTION_LOGOUT");
+                sendBroadcast(broadcastIntent);
+                // broadcast logout signal to all activity
+
                 Intent i = new Intent(HomeActivity.this, LoginActivity.class);
                 startActivity(i);
                 finish();
@@ -491,8 +617,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         int id = item.getItemId();
         switch (id) {
             case R.id.actionSearch:
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putString("pid", pid);
+                editor.commit();
                 Intent i = new Intent(HomeActivity.this, SearchActivity.class);
                 this.startActivity(i);
+                finish();
                 break;
             case R.id.actionNotification:
 //                Intent intent = new Intent(HomeActivity.this, NotificationActivity.class);
@@ -525,6 +656,20 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
+
+                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.clear();
+                            editor.apply();
+
+                            // broadcast logout signal to all activity
+                            Intent broadcastIntent = new Intent();
+                            broadcastIntent.setAction("com.package.ACTION_LOGOUT");
+                            sendBroadcast(broadcastIntent);
+                            // broadcast logout signal to all activity
+
+                            //finish();
+
                             Intent i = new Intent(HomeActivity.this, LoginActivity.class);
                             startActivity(i);
                             finish();
@@ -810,23 +955,77 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         Volley.newRequestQueue(this).add(jsonObjectRequest);
     }
 
-    public void UploadFile(final String fileNames, String filePathes) {
-        String urlCreateDirectory = "" + urlDirectory + "?u=" + userName + "&p=" + password + "&act=upload&fname=" + fileNames + "&fpath=" + filePathes + "&pid=" + pid + "";
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCreateDirectory, new Response.Listener<String>() {
+    public void UploadFile(final String fileNames, final String filePathes) {
+//        Log.d("Input", fileNames);
+//        Log.d("Input", filePathes);
+//        Log.d("Input", urlDirectory);
+//        Log.d("Input", userName);
+//        Log.d("Input", password);
+//        Log.d("Input", pid);
+
+        // tambahan
+
+        File file = new File(filePathes);
+        try {
+            InputStream inputStream = new FileInputStream(file);
+            BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuilder total = new StringBuilder();
+            String line;
+
+            try {
+                while ((line = r.readLine()) != null) {
+                    total.append(line);
+                }
+            } catch (java.io.IOException e) {
+                showToast(e.toString());
+            }
+
+            kontenFile = total.toString();
+        } catch (java.io.FileNotFoundException e) {
+            showToast(e.toString());
+        }
+        // tambahan
+
+        //String urlCreateDirectory = "" + urlDirectory + "?u=" + userName + "&p=" + password + "&act=upload&fname=" + fileNames + "&fpath=" + filePathes + "&pid=" + pid + "";
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, urlDirectory, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
+                // response
+                //Log.d("Response", response);
+                //showToast(response);
+                try {
+                    JSONObject jsonResponse = new JSONObject(response);
+                    int err_code = jsonResponse.getInt("err_code");
+                    String message = jsonResponse.getString("message");
+                    String fid = "";
+                    if (err_code == 0) {
+                        fid = jsonResponse.getString("fid");
+                    }
 
+                    showToast(err_code + " - " + message + " - " + fid);
+                    //String site = jsonResponse.getString("site"),
+                    //        network = jsonResponse.getString("network");
+                    //System.out.println("Site: " + site + "\nNetwork: " + network);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                showToast("Oopss!!!");
+                showToast("upload - " + error);
             }
         }) {
-            protected Map<String, String> getParams() throws AuthFailureError {
+            protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<String, String>();
-                params.put("Content-Type", "application/x-www-form-urlencoded");
-                params.put("Accept", "application/json");
+                params.put("filedata", kontenFile);
+                params.put("u", userName);
+                params.put("p", password);
+                params.put("act", "upload");
+                params.put("fname", fileNames);
+                params.put("pid", pid);
+//                params.put("Content-Type", "application/x-www-form-urlencoded");
+//                params.put("Accept", "application/json");
 //                params.put("name",name);
                 return params;
             }
@@ -834,4 +1033,198 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(stringRequest);
     }
+
+    public void restartActivity(String pid) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("pid", pid);
+        editor.commit();
+        Intent intent = new Intent(HomeActivity.this, HomeActivity.class);
+        startActivity(intent);
+    }
+
+    private void askPermissionAndWriteFile(String response, String fileName) {
+        boolean canWrite = this.askPermission(REQUEST_ID_WRITE_PERMISSION,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        //
+        if (canWrite) {
+            this.writeFile(response, fileName);
+        }
+    }
+
+    private void writeFile(String data, String fileName) {
+        File root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+        //File root = Environment.getExternalStorageDirectory();
+        File outDir = new File(root.getAbsolutePath() + File.separator);
+
+        showToast(root.getAbsolutePath() + File.separator);
+
+        if (!outDir.isDirectory()) {
+            outDir.mkdir();
+        }
+        try {
+            if (!outDir.isDirectory()) {
+                throw new IOException(
+                        "Unable to create directory EZ_time_tracker. Maybe the SD card is mounted?");
+            }
+            File outputFile = new File(outDir, fileName);
+            Writer writer = new BufferedWriter(new FileWriter(outputFile));
+            writer.write(data);
+            Toast.makeText(HomeActivity.this.getApplicationContext(),
+                    "Report successfully saved to: " + outputFile.getAbsolutePath(),
+                    Toast.LENGTH_LONG).show();
+            writer.close();
+        } catch (IOException e) {
+            Log.w("eztt", e.getMessage(), e);
+            Toast.makeText(HomeActivity.this, e.getMessage() + " Unable to write to external storage.",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+//    private void writeFile(String response, String fileName) {
+//        InputStream targetStream = new ByteArrayInputStream(response.getBytes(Charset.forName("UTF-8")));
+//
+//        File dst = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download/" + fileName);
+//
+//        try (InputStream in = targetStream) {
+//            try (OutputStream out = new FileOutputStream(dst)) {
+//                // Transfer bytes from in to out
+//                byte[] buf = new byte[1024];
+//                int len;
+//                while ((len = in.read(buf)) > 0) {
+//                    out.write(buf, 0, len);
+//                }
+//                showToast(fileName + " donwloaded");
+//            }
+//        } catch (Exception e) {
+//            showToast(e.toString());
+//        }
+//    }
+
+//    private void writeFile(String response, String fileName) {
+//        File extStore = Environment.getExternalStorageDirectory();
+//        // ==> /storage/emulated/0/<fileName>
+//        String path = extStore.getAbsolutePath() + "/Download/" + fileName;
+//        Log.i("ExternalStorageDemo", "Save to: " + path);
+//
+//        String data = response;
+//
+//        try {
+//            File myFile = new File(path);
+//            myFile.createNewFile();
+//            FileOutputStream fOut = new FileOutputStream(myFile);
+//            OutputStreamWriter myOutWriter = new OutputStreamWriter(fOut);
+//            myOutWriter.append(data);
+//            myOutWriter.close();
+//            fOut.close();
+//
+//            Toast.makeText(getApplicationContext(), this.fileName + " saved", Toast.LENGTH_LONG).show();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
+
+    private boolean askPermission(int requestId, String permissionName) {
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+
+            // Check if we have permission
+            int permission = ActivityCompat.checkSelfPermission(this, permissionName);
+
+
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // If don't have permission so prompt the user.
+                this.requestPermissions(
+                        new String[]{permissionName},
+                        requestId
+                );
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // When you have the request results
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        //
+        // Note: If request is cancelled, the result arrays are empty.
+        if (grantResults.length > 0) {
+            switch (requestCode) {
+                case REQUEST_ID_READ_PERMISSION: {
+                    if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        Toast.makeText(this, "Read permission granted", Toast.LENGTH_SHORT).show();
+                        //readFile();
+                    }
+                }
+                case REQUEST_ID_WRITE_PERMISSION: {
+                    Toast.makeText(this, "Write permission granted", Toast.LENGTH_SHORT).show();
+                    if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        Toast.makeText(this, "Write permission granted", Toast.LENGTH_SHORT).show();
+                        //writeFile(response);
+                    }
+                }
+            }
+        } else {
+            Toast.makeText(getApplicationContext(), "Permission Cancelled!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // fungsi download baru
+    private void fungsiDownload(String item_id, String fileName) {
+        list.clear();
+
+        String urlDownload = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
+        Uri Download_Uri = Uri.parse(urlDownload);
+
+        DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
+        request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
+        request.setAllowedOverRoaming(false);
+        request.setTitle("Chanthel Downloading " + fileName);
+        request.setDescription("Downloading " + fileName);
+        request.setVisibleInDownloadsUi(true);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/Chanthel/" + "/" + fileName);
+
+        refid = downloadManager.enqueue(request);
+
+        Log.e("OUT", "" + refid);
+
+        list.add(refid);
+    }
+
+    BroadcastReceiver onComplete = new BroadcastReceiver() {
+
+        public void onReceive(Context ctxt, Intent intent) {
+
+
+            long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+
+
+            Log.e("IN", "" + referenceId);
+
+            list.remove(referenceId);
+
+
+            if (list.isEmpty()) {
+
+
+                Log.e("INSIDE", "" + referenceId);
+                NotificationCompat.Builder mBuilder =
+                        new NotificationCompat.Builder(HomeActivity.this)
+                                .setSmallIcon(R.mipmap.ic_launcher)
+                                .setContentTitle("Chanthel")
+                                .setContentText("All Download completed");
+
+
+                NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                notificationManager.notify(455, mBuilder.build());
+
+
+            }
+
+        }
+    };
 }
