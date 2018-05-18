@@ -1,21 +1,26 @@
 package com.solusi247.fatkhul.chanthelbeta.activities;
 
 import android.Manifest;
+import android.app.DownloadManager;
+import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.SystemClock;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -37,7 +42,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -58,18 +62,13 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -99,6 +98,10 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     private static final int REQUEST_ID_READ_PERMISSION = 100;
     private static final int REQUEST_ID_WRITE_PERMISSION = 200;
+
+    private DownloadManager downloadManager;
+    ArrayList<Long> list = new ArrayList<>();
+    private long refid;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -188,6 +191,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 //contentAdapter = new ContentAdapter(HomeActivity.this, listData, layoutManager);
                 recyclerView.setAdapter(contentAdapter);
                 contentAdapter.notifyDataSetChanged();
+
             }
         });
 
@@ -283,7 +287,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                             .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                                                 @Override
                                                 public void onClick(DialogInterface dialogInterface, int i) {
-                                                    downloadFile(item_id, fileName);
+                                                    fungsiDownload(item_id, fileName);
                                                 }
                                             }).setNegativeButton("Cancel", null);
                                     AlertDialog alert = builderDownload.create();
@@ -497,6 +501,12 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+        downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+
+        if (!askPermission(REQUEST_ID_WRITE_PERMISSION, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+        }
     }
 
     // download file
@@ -1162,4 +1172,59 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             Toast.makeText(getApplicationContext(), "Permission Cancelled!", Toast.LENGTH_SHORT).show();
         }
     }
+
+    // fungsi download baru
+    private void fungsiDownload(String item_id, String fileName) {
+        list.clear();
+
+        String urlDownload = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
+        Uri Download_Uri = Uri.parse(urlDownload);
+
+        DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
+        request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
+        request.setAllowedOverRoaming(false);
+        request.setTitle("Chanthel Downloading " + fileName);
+        request.setDescription("Downloading " + fileName);
+        request.setVisibleInDownloadsUi(true);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/Chanthel/" + "/" + fileName);
+
+        refid = downloadManager.enqueue(request);
+
+        Log.e("OUT", "" + refid);
+
+        list.add(refid);
+    }
+
+    BroadcastReceiver onComplete = new BroadcastReceiver() {
+
+        public void onReceive(Context ctxt, Intent intent) {
+
+
+            long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+
+
+            Log.e("IN", "" + referenceId);
+
+            list.remove(referenceId);
+
+
+            if (list.isEmpty()) {
+
+
+                Log.e("INSIDE", "" + referenceId);
+                NotificationCompat.Builder mBuilder =
+                        new NotificationCompat.Builder(HomeActivity.this)
+                                .setSmallIcon(R.mipmap.ic_launcher)
+                                .setContentTitle("GadgetSaint")
+                                .setContentText("All Download completed");
+
+
+                NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                notificationManager.notify(455, mBuilder.build());
+
+
+            }
+
+        }
+    };
 }
