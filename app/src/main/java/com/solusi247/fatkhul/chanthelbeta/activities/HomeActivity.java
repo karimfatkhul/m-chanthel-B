@@ -231,8 +231,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         bottomSheetDialogMoreOption.setContentView(bottomDialogView);
 
                         TextView contentName = (TextView) bottomDialogView.findViewById(R.id.more_option_content_name);
-                        LinearLayout linearLayout = (LinearLayout) bottomDialogView.findViewById(R.id.preview);
-                        linearLayout.setVisibility(View.GONE);
+//                        LinearLayout linearLayout = (LinearLayout) bottomDialogView.findViewById(R.id.preview);
+//                        linearLayout.setVisibility(View.GONE);
                         //View border = (View) bottomDialogView.findViewById(R.id.border_preview);
                         //border.setVisibility(View.GONE);
                         ImageView chat = (ImageView) bottomDialogView.findViewById(R.id.chat);
@@ -268,10 +268,37 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         LinearLayout paste = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.paste);
                         final LinearLayout rename = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.rename);
                         LinearLayout delete = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.delete);
-                        LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
+                        //LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
 
                         // tambah download code start
                         LinearLayout download = bottomDialogView.findViewById(R.id.download);
+                        LinearLayout preview = bottomDialogView.findViewById(R.id.preview);
+
+                        preview.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                final String template_id;
+                                final String item_id;
+                                template_id = listData.get(position).getTemplate_id();
+                                item_id = listData.get(position).getId();
+                                if (template_id.matches("6")) {
+                                    fileName = listData.get(position).getName();
+                                    getLinkPreview(item_id, fileName);
+                                    bottomSheetDialogMoreOption.hide();
+//                                    final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
+//                                    builderDownload.setMessage("Are you sure you want to preview this file ?")
+//                                            .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+//                                                @Override
+//                                                public void onClick(DialogInterface dialogInterface, int i) {
+//                                                    fungsiDownload(item_id, fileName);
+//                                                }
+//                                            }).setNegativeButton("Cancel", null);
+//                                    AlertDialog alert = builderDownload.create();
+//                                    alert.show();
+//                                    bottomSheetDialogMoreOption.hide();
+                                }
+                            }
+                        });
 
                         download.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -509,16 +536,20 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    // download file
-    private void downloadFile(String item_id, final String fileName) {
-        String urlRename = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
-        StringRequest stringReq = new StringRequest(Request.Method.GET, urlRename, new Response.Listener<String>() {
-            public void onResponse(String response) {
-                if (response.matches("error_code: 3")) {
-                    showToast("sorry, download failed");
-                } else {
-                    //showToast(response);
-                    askPermissionAndWriteFile(response, fileName);
+    private void getLinkPreview(final String item_id, final String fileName) {
+        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file&fid=" + item_id;
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, apiPreview, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    if (response.getInt("error_code") == 3) {
+                        showToast("sorry, something wrong");
+                    } else {
+                        String urlPReview = response.getString("url");
+                        fungsiPreview(urlPReview, fileName);
+                    }
+                } catch (org.json.JSONException err) {
+                    showToast(err.toString());
                 }
             }
         }, new Response.ErrorListener() {
@@ -528,8 +559,50 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         }
         );
-        Volley.newRequestQueue(this).add(stringReq);
+        Volley.newRequestQueue(this).add(jsonObjectRequest);
     }
+
+    private void fungsiPreview(String url_Preview, String fileName) {
+        list.clear();
+
+        Uri Download_Uri = Uri.parse(url_Preview.replaceFirst("http://yava-228.solusi247.com", "http://192.168.1.228"));
+
+        DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
+        request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
+        request.setAllowedOverRoaming(false);
+        request.setTitle("Chanthel Downloading " + fileName);
+        request.setDescription("Downloading " + fileName);
+        request.setVisibleInDownloadsUi(true);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/Chanthel/" + "/" + fileName);
+
+        refid = downloadManager.enqueue(request);
+
+        Log.e("OUT", "" + refid);
+
+        list.add(refid);
+    }
+
+    // download file
+//    private void downloadFile(String item_id, final String fileName) {
+//        String urlRename = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
+//        StringRequest stringReq = new StringRequest(Request.Method.GET, urlRename, new Response.Listener<String>() {
+//            public void onResponse(String response) {
+//                if (response.matches("error_code: 3")) {
+//                    showToast("sorry, download failed");
+//                } else {
+//                    //showToast(response);
+//                    askPermissionAndWriteFile(response, fileName);
+//                }
+//            }
+//        }, new Response.ErrorListener() {
+//            @Override
+//            public void onErrorResponse(VolleyError error) {
+//                showToast(error.toString());
+//            }
+//        }
+//        );
+//        Volley.newRequestQueue(this).add(stringReq);
+//    }
 
     //inisialisasi method untuk menambahkan file baru (upload file)
     @Override
