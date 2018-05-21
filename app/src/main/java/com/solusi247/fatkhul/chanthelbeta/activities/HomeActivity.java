@@ -64,6 +64,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -573,7 +575,34 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         request.setTitle("Chanthel Downloading " + fileName);
         request.setDescription("Downloading " + fileName);
         request.setVisibleInDownloadsUi(true);
-        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/Chanthel/" + "/" + fileName);
+
+//        File tempFile;
+//        String newName = "";
+//        String[] shortName = fileName.split("\\.([a-zA-Z])+$");
+//        for (int i = 0; i < shortName.length - 1; i++) {
+//            newName = newName + shortName[i];
+//        }
+
+//        showToast(newName);
+//        final String TEMP_FILE_NAME = newName;
+
+        // temp
+        final String TEMP_FILE_NAME = "";
+//        File tempFile;
+
+        /** Getting Cache Directory */
+        File cDir = getBaseContext().getCacheDir();
+
+        /** Getting a reference to temporary file, if created earlier */
+//        tempFile = new File(cDir.getPath() + "/" + TEMP_FILE_NAME);
+
+
+        request.setDestinationInExternalPublicDir(cDir.getPath(), "/Chanthel/" + "/" + TEMP_FILE_NAME);
+
+
+        Log.e("DIR", "" + cDir.getPath());
+        //showToast(HomeActivity.this.getCacheDir().getAbsolutePath());
+        // temp
 
         refid = downloadManager.enqueue(request);
 
