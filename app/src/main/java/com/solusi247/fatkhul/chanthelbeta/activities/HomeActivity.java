@@ -285,7 +285,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 item_id = listData.get(position).getId();
                                 if (template_id.matches("6")) {
                                     fileName = listData.get(position).getName();
+                                    String ekstensi = listData.get(position).getExt();
                                     getLinkPreview(item_id, fileName);
+                                    displayPreview(fileName, ekstensi);
                                     bottomSheetDialogMoreOption.hide();
 //                                    final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
 //                                    builderDownload.setMessage("Are you sure you want to preview this file ?")
@@ -551,12 +553,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         fungsiPreview(urlPReview, fileName);
                     }
                 } catch (org.json.JSONException err) {
+                    Log.e("PREVIEW", err.toString());
                     showToast(err.toString());
                 }
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                Log.e("PREVIEW", error.toString());
                 showToast(error.toString());
             }
         }
@@ -578,7 +582,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
 //        File tempFile;
 //        String newName = "";
-//        String[] shortName = fileName.split("\\.([a-zA-Z])+$");
+//        String[] shortName = fileName.split("\\.");
 //        for (int i = 0; i < shortName.length - 1; i++) {
 //            newName = newName + shortName[i];
 //        }
@@ -587,8 +591,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 //        final String TEMP_FILE_NAME = newName;
 
         // temp
-        final String TEMP_FILE_NAME = "";
+//        final String TEMP_FILE_NAME = newName;
 //        File tempFile;
+        final String TEMP_FILE_NAME = fileName;
 
         /** Getting Cache Directory */
         File cDir = getBaseContext().getCacheDir();
@@ -597,10 +602,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 //        tempFile = new File(cDir.getPath() + "/" + TEMP_FILE_NAME);
 
 
-        request.setDestinationInExternalPublicDir(cDir.getPath(), "/Chanthel/" + "/" + TEMP_FILE_NAME);
+        request.setDestinationInExternalPublicDir(cDir.getPath(), "/Chanthel/" + TEMP_FILE_NAME);
 
 
         Log.e("DIR", "" + cDir.getPath());
+        Log.e("DIR", cDir.getPath() + "/Chanthel/" + TEMP_FILE_NAME);
         //showToast(HomeActivity.this.getCacheDir().getAbsolutePath());
         // temp
 
@@ -609,6 +615,51 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         Log.e("OUT", "" + refid);
 
         list.add(refid);
+
+//        // launch other apps
+//        Intent sharingIntent = new Intent(Intent.ACTION_VIEW);
+//        Uri screenshotUri = Uri.parse(cDir.getPath() + "/Chanthel/" + TEMP_FILE_NAME);
+//
+//        sharingIntent.setType("image/*");
+//        sharingIntent.putExtra(Intent.EXTRA_STREAM, screenshotUri);
+//        startActivity(Intent.createChooser(sharingIntent, "Share image using"));
+    }
+
+    private void displayPreview(String namaFile, String tipeFile) {
+        final String TEMP_FILE_NAME = namaFile;
+
+        /** Getting Cache Directory */
+        File cDir = getBaseContext().getCacheDir();
+
+        Intent sharingIntent = new Intent(Intent.ACTION_VIEW);
+        Uri previewUri = Uri.parse(cDir.getPath() + "/Chanthel/" + TEMP_FILE_NAME);
+
+        // setType berdasarkan tipe file
+        switch (tipeFile) {
+            case "png":
+            case "jpg":
+                sharingIntent.setType("image/*");
+                break;
+            case "mp3":
+                sharingIntent.setType("audio/*");
+                break;
+            case "doc":
+            case "docx":
+            case "xls":
+            case "xlsx":
+            case "ppt":
+            case "pptx":
+            case "txt":
+            case "pdf":
+                sharingIntent.setType("application/pdf");
+                break;
+            case "mp4":
+                sharingIntent.setType("video/*");
+                break;
+        }
+
+        sharingIntent.putExtra(Intent.EXTRA_STREAM, previewUri);
+        startActivity(Intent.createChooser(sharingIntent, "display preview using"));
     }
 
     // download file
