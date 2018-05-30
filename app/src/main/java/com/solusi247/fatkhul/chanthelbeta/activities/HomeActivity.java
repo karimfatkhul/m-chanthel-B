@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -104,6 +105,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private DownloadManager downloadManager;
     ArrayList<Long> list = new ArrayList<>();
     private long refid;
+
+    boolean doDisplay;
+    String ekstensi;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -279,15 +283,16 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         preview.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
+                                doDisplay = true;
                                 final String template_id;
                                 final String item_id;
                                 template_id = listData.get(position).getTemplate_id();
                                 item_id = listData.get(position).getId();
                                 if (template_id.matches("6")) {
                                     fileName = listData.get(position).getName();
-                                    String ekstensi = listData.get(position).getExt();
+                                    ekstensi = listData.get(position).getExt();
                                     getLinkPreview(item_id, fileName);
-                                    displayPreview(fileName, ekstensi);
+//                                    displayPreview(fileName, ekstensi);
                                     bottomSheetDialogMoreOption.hide();
 //                                    final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
 //                                    builderDownload.setMessage("Are you sure you want to preview this file ?")
@@ -307,6 +312,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         download.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
+                                doDisplay = false;
                                 final String template_id;
                                 final String item_id;
                                 template_id = listData.get(position).getTemplate_id();
@@ -626,22 +632,16 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void displayPreview(String namaFile, String tipeFile) {
-        final String TEMP_FILE_NAME = namaFile;
 
-        /** Getting Cache Directory */
-        File cDir = getBaseContext().getCacheDir();
-
-        Intent sharingIntent = new Intent(Intent.ACTION_VIEW);
-        Uri previewUri = Uri.parse(cDir.getPath() + "/Chanthel/" + TEMP_FILE_NAME);
-
+        Intent intent = null;
         // setType berdasarkan tipe file
         switch (tipeFile) {
             case "png":
             case "jpg":
-                sharingIntent.setType("image/*");
+//                sharingIntent.setType("image/*");
                 break;
             case "mp3":
-                sharingIntent.setType("audio/*");
+                intent = new Intent(this, AudioActivity.class);
                 break;
             case "doc":
             case "docx":
@@ -651,16 +651,57 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             case "pptx":
             case "txt":
             case "pdf":
-                sharingIntent.setType("application/pdf");
+//                sharingIntent.setType("application/pdf");
+                intent = new Intent(this, PdfActivity.class);
                 break;
             case "mp4":
-                sharingIntent.setType("video/*");
+//                sharingIntent.setType("video/*");
                 break;
+            default:
+                showToast("Sorry, we can't preview this file");
         }
 
-        sharingIntent.putExtra(Intent.EXTRA_STREAM, previewUri);
-        startActivity(Intent.createChooser(sharingIntent, "display preview using"));
+        intent.putExtra("namaFile", namaFile);
+        this.startActivity(intent);
     }
+
+//    private void displayPreview(String namaFile, String tipeFile) {
+//        final String TEMP_FILE_NAME = namaFile;
+//
+//        /** Getting Cache Directory */
+//        File cDir = getBaseContext().getCacheDir();
+//
+//        Intent sharingIntent = new Intent(Intent.ACTION_VIEW);
+//        Uri previewUri = Uri.parse(cDir.getPath() + "/Chanthel/" + TEMP_FILE_NAME);
+//
+//        // setType berdasarkan tipe file
+//        switch (tipeFile) {
+//            case "png":
+//            case "jpg":
+//                sharingIntent.setType("image/*");
+//                break;
+//            case "mp3":
+//                sharingIntent.setType("audio/*");
+//                break;
+//            case "doc":
+//            case "docx":
+//            case "xls":
+//            case "xlsx":
+//            case "ppt":
+//            case "pptx":
+//            case "txt":
+//            case "pdf":
+//                sharingIntent.setType("application/pdf");
+//                break;
+//            case "mp4":
+//                sharingIntent.setType("video/*");
+//                break;
+//        }
+//
+//        sharingIntent.putExtra(Intent.EXTRA_STREAM, previewUri);
+//        startActivity(Intent.createChooser(sharingIntent, "display preview using"));
+//    }
+
 
     // download file
 //    private void downloadFile(String item_id, final String fileName) {
@@ -1351,32 +1392,55 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     BroadcastReceiver onComplete = new BroadcastReceiver() {
 
         public void onReceive(Context ctxt, Intent intent) {
+            ////
+//            SharedPreferences downloadids = ctxt.getSharedPreferences("DownloadIDS", 0);
+//            long savedDownloadIds = downloadids.getLong("savedDownloadIds", 0);
 
+            Bundle extras = intent.getExtras();
+            DownloadManager.Query q = new DownloadManager.Query();
+            Long downloaded_id = extras.getLong(DownloadManager.EXTRA_DOWNLOAD_ID);
+            if (refid == downloaded_id) { // so it is my file that has been completed
+                q.setFilterById(downloaded_id);
 
-            long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-
-
-            Log.e("IN", "" + referenceId);
-
-            list.remove(referenceId);
-
-
-            if (list.isEmpty()) {
-
-
-                Log.e("INSIDE", "" + referenceId);
-                NotificationCompat.Builder mBuilder =
-                        new NotificationCompat.Builder(HomeActivity.this)
-                                .setSmallIcon(R.mipmap.ic_launcher)
-                                .setContentTitle("Chanthel")
-                                .setContentText("All Download completed");
-
-
-                NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationManager.notify(455, mBuilder.build());
-
-
+                DownloadManager manager = (DownloadManager) ctxt.getSystemService(Context.DOWNLOAD_SERVICE);
+                Cursor c = manager.query(q);
+                if (c.moveToFirst()) {
+                    int status = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS));
+                    if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                        // do any thing here
+                        if (doDisplay) {
+                            displayPreview(fileName, ekstensi);
+                        }
+                    }
+                }
+                c.close();
             }
+            ////
+
+//            long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+//
+//
+//            Log.e("IN", "" + referenceId);
+//
+//            list.remove(referenceId);
+//
+//
+//            if (list.isEmpty()) {
+//
+//
+//                Log.e("INSIDE", "" + referenceId);
+//                NotificationCompat.Builder mBuilder =
+//                        new NotificationCompat.Builder(HomeActivity.this)
+//                                .setSmallIcon(R.mipmap.ic_launcher)
+//                                .setContentTitle("Chanthel")
+//                                .setContentText("All Download completed");
+//
+//
+//                NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+//                notificationManager.notify(455, mBuilder.build());
+//
+//
+//            }
 
         }
     };
