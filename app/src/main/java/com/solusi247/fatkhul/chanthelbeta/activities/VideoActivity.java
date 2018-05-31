@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.MediaController;
 import android.widget.VideoView;
 
@@ -24,7 +25,8 @@ public class VideoActivity extends AppCompatActivity {
 
         Intent i = this.getIntent();
         String fileName = i.getExtras().getString("namaFile");
-        File fileMedia = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + Environment.getExternalStorageDirectory() + "/" + fileName);
+        File fileMedia = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + fileName);
+        Log.d("VIDEO", fileMedia.getAbsolutePath());
         Uri fileUri = Uri.fromFile(fileMedia);
         vidView.setVideoURI(fileUri);
         vidView.start();
