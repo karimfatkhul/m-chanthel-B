@@ -366,13 +366,21 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                         contentAdapter.notifyDataSetChanged();
                                                         showToast(messej);
                                                     } else {
-                                                        action = "rename_file&fid=";
-                                                        messej = "File has been renamed";
-                                                        listData.clear();
-                                                        RenameContent(folderName, "");
-                                                        contentAdapter.notifyItemChanged(position);
-                                                        contentAdapter.notifyDataSetChanged();
-                                                        showToast(messej);
+                                                        if (folderName.contains(".")) {
+                                                            showToast("please do not use \".\" symbol");
+                                                        } else {
+                                                            ekstensi = listData.get(position).getExt();
+                                                            if (ekstensi.length() != 0) {
+                                                                folderName = folderName + "." + ekstensi;
+                                                            }
+                                                            action = "rename_file&fid=";
+                                                            messej = "File has been renamed";
+                                                            listData.clear();
+                                                            RenameContent(folderName, "");
+                                                            contentAdapter.notifyItemChanged(position);
+                                                            contentAdapter.notifyDataSetChanged();
+                                                            showToast(messej);
+                                                        }
                                                     }
                                                     dialog.dismiss();
 
@@ -638,7 +646,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         switch (tipeFile) {
             case "png":
             case "jpg":
-//                sharingIntent.setType("image/*");
+            case "gif":
+                intent = new Intent(this, ImageActivity.class);
                 break;
             case "mp3":
                 intent = new Intent(this, AudioActivity.class);
@@ -655,7 +664,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 intent = new Intent(this, PdfActivity.class);
                 break;
             case "mp4":
+            case "3gp":
 //                sharingIntent.setType("video/*");
+                intent = new Intent(this, VideoActivity.class);
                 break;
             default:
                 showToast("Sorry, we can't preview this file");

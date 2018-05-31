@@ -38,7 +38,9 @@
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity android:name=".activities.AudioActivity" />
-        <activity android:name=".activities.PdfActivity"></activity>
+        <activity android:name=".activities.PdfActivity" />
+        <activity android:name=".activities.VideoActivity" />
+        <activity android:name=".activities.ImageActivity"></activity>
     </application>
 
 </manifest>

@@ -38,4 +38,6 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
 
 //    implementation 'com.github.barteksc:android-pdf-viewer:2.8.2'
+    // touchView
+    implementation 'com.github.thijsk:TouchImageView:v1.3.1'
 }
