@@ -40,7 +40,8 @@
         <activity android:name=".activities.AudioActivity" />
         <activity android:name=".activities.PdfActivity" />
         <activity android:name=".activities.VideoActivity" />
-        <activity android:name=".activities.ImageActivity"></activity>
+        <activity android:name=".activities.ImageActivity" />
+        <activity android:name=".activities.TextActivity"></activity>
     </application>
 
 </manifest>

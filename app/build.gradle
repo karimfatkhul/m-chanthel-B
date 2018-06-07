@@ -36,8 +36,15 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
-
-//    implementation 'com.github.barteksc:android-pdf-viewer:2.8.2'
+    //    implementation 'com.github.barteksc:android-pdf-viewer:2.8.2'
     // touchView
     implementation 'com.github.thijsk:TouchImageView:v1.3.1'
+
+    // upload
+    // lib upload
+    implementation 'com.squareup.retrofit2:retrofit:2.3.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
+
+    // lib file picker
+    implementation 'com.obsez.android.lib.filechooser:filechooser:1.1.10'
 }

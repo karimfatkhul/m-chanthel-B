@@ -53,9 +53,12 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
+import com.obsez.android.lib.filechooser.ChooserDialog;
 import com.solusi247.fatkhul.chanthelbeta.R;
 import com.solusi247.fatkhul.chanthelbeta.adapter.ContentAdapter;
 import com.solusi247.fatkhul.chanthelbeta.data.ContentData;
+import com.solusi247.fatkhul.chanthelbeta.helper.UploadApi;
+import com.solusi247.fatkhul.chanthelbeta.helper.UploadResponse;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -75,6 +78,14 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 
 /**
@@ -98,6 +109,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private String pid, lastPid;
     private TextView rootFolder;
     private String kontenFile;
+    private String previewName;
 
     private static final int REQUEST_ID_READ_PERMISSION = 100;
     private static final int REQUEST_ID_WRITE_PERMISSION = 200;
@@ -291,7 +303,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 if (template_id.matches("6")) {
                                     fileName = listData.get(position).getName();
                                     ekstensi = listData.get(position).getExt();
-                                    getLinkPreview(item_id, fileName);
+                                    fungsiPreview(item_id, fileName, ekstensi);
 //                                    displayPreview(fileName, ekstensi);
                                     bottomSheetDialogMoreOption.hide();
 //                                    final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
@@ -525,23 +537,54 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         upload_file.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
+//                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//                        != PackageManager.PERMISSION_GRANTED) {
+//                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
+//
+//                }
+//
+//                if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+//                    showToast("write permission ok");
+//                }
+//
+//                new MaterialFilePicker()
+//                        .withActivity(HomeActivity.this)
+//                        .withRequestCode(1000)
+//                        .withHiddenFiles(true) // Show hidden files and folders
+//                        .start();
+//
+////                UploadFile(fileName, path);
+//                fungsiUpload(path);
 
-                }
+                final Context ctx = HomeActivity.this;
+                new ChooserDialog(ctx)
+                        .withFilterRegex(false, true, ".*\\.(jpe?g|png)")
+                        .withStartFile(path)
+                        .withResources(R.string.title_choose_file, R.string.title_choose, R.string.dialog_cancel)
+                        .withChosenListener(new ChooserDialog.Result() {
+                            @Override
+                            public void onChoosePath(String paths, File pathFile) {
+//                                Toast.makeText(ctx, "FILE: " + paths, Toast.LENGTH_SHORT).show();
+//                                path = paths;
+                                fungsiUpload(paths);
+                                restartActivity(pid);
+                            }
+                        })
+                        .withNavigateUpTo(new ChooserDialog.CanNavigateUp() {
+                            @Override
+                            public boolean canUpTo(File dir) {
+                                return true;
+                            }
+                        })
+                        .withNavigateTo(new ChooserDialog.CanNavigateTo() {
+                            @Override
+                            public boolean canNavigate(File dir) {
+                                return true;
+                            }
+                        })
+                        .build()
+                        .show();
 
-                if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                    showToast("write permission ok");
-                }
-
-                new MaterialFilePicker()
-                        .withActivity(HomeActivity.this)
-                        .withRequestCode(1000)
-                        .withHiddenFiles(true) // Show hidden files and folders
-                        .start();
-
-                UploadFile(fileName, path);
                 bottomSheetDialog.hide();
             }
         });
@@ -554,44 +597,54 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private void getLinkPreview(final String item_id, final String fileName) {
-        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file&fid=" + item_id;
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, apiPreview, null, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                try {
-                    if (response.getInt("error_code") == 3) {
-                        showToast("sorry, something wrong");
-                    } else {
-                        String urlPReview = response.getString("url");
-                        fungsiPreview(urlPReview, fileName);
-                    }
-                } catch (org.json.JSONException err) {
-                    Log.e("PREVIEW", err.toString());
-                    showToast(err.toString());
-                }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e("PREVIEW", error.toString());
-                showToast(error.toString());
-            }
-        }
-        );
-        Volley.newRequestQueue(this).add(jsonObjectRequest);
-    }
+//    private void getLinkPreview(final String item_id, final String fileName) {
+//        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file&fid=" + item_id;
+//        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, apiPreview, null, new Response.Listener<JSONObject>() {
+//            @Override
+//            public void onResponse(JSONObject response) {
+//                try {
+//                    if (response.getInt("error_code") == 3) {
+//                        showToast("sorry, something wrong");
+//                    } else {
+//                        String urlPReview = response.getString("url");
+//                        fungsiPreview(urlPReview, fileName);
+//                    }
+//                } catch (org.json.JSONException err) {
+//                    Log.e("PREVIEW", err.toString());
+//                    showToast(err.toString());
+//                }
+//            }
+//        }, new Response.ErrorListener() {
+//            @Override
+//            public void onErrorResponse(VolleyError error) {
+//                Log.e("PREVIEW", error.toString());
+//                showToast(error.toString());
+//            }
+//        }
+//        );
+//        Volley.newRequestQueue(this).add(jsonObjectRequest);
+//    }
 
-    private void fungsiPreview(String url_Preview, String fileName) {
+    private void fungsiPreview(final String item_id, final String fileName, String ekstensi) {
         list.clear();
 
-        Uri Download_Uri = Uri.parse(url_Preview.replaceFirst("http://yava-228.solusi247.com", "http://192.168.1.228"));
+        if (ekstensi.matches("doc") || ekstensi.matches("docx") || ekstensi.matches("xls") ||
+                ekstensi.matches("xlsx") || ekstensi.matches("ppt") || ekstensi.matches("pptx") ||
+                ekstensi.matches("txt") || ekstensi.matches("js")) {
+            previewName = fileName.replace("." + ekstensi, "") + ".pdf";
+        } else {
+            previewName = fileName;
+        }
+
+
+        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file_mobile&fid=" + item_id;
+        Uri Download_Uri = Uri.parse(apiPreview);
 
         DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
         request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
         request.setAllowedOverRoaming(false);
-        request.setTitle("Chanthel Downloading " + fileName);
-        request.setDescription("Downloading " + fileName);
+        request.setTitle("Chanthel Downloading " + previewName);
+        request.setDescription("Downloading " + previewName);
         request.setVisibleInDownloadsUi(true);
 
 //        File tempFile;
@@ -607,7 +660,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         // temp
 //        final String TEMP_FILE_NAME = newName;
 //        File tempFile;
-        final String TEMP_FILE_NAME = fileName;
+//        final String TEMP_FILE_NAME = fileName;
 
         /** Getting Cache Directory */
         File cDir = getBaseContext().getCacheDir();
@@ -616,11 +669,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 //        tempFile = new File(cDir.getPath() + "/" + TEMP_FILE_NAME);
 
 
-        request.setDestinationInExternalPublicDir(cDir.getPath(), "/Chanthel/" + TEMP_FILE_NAME);
+        request.setDestinationInExternalPublicDir(cDir.getPath(), "/Chanthel/" + previewName);
 
 
         Log.e("DIR", "" + cDir.getPath());
-        Log.e("DIR", cDir.getPath() + "/Chanthel/" + TEMP_FILE_NAME);
+        Log.e("DIR", cDir.getPath() + "/Chanthel/" + previewName);
         //showToast(HomeActivity.this.getCacheDir().getAbsolutePath());
         // temp
 
@@ -665,8 +718,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 break;
             case "mp4":
             case "3gp":
-//                sharingIntent.setType("video/*");
                 intent = new Intent(this, VideoActivity.class);
+                break;
+            case "hjs":
+            case "html":
+                intent = new Intent(this, TextActivity.class);
                 break;
             default:
                 showToast("Sorry, we can't preview this file");
@@ -1400,6 +1456,28 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         list.add(refid);
     }
 
+
+    private void fungsiPreview02(String item_id, String fileName) {
+        list.clear();
+
+        String urlDownload = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file_mobile&fid=" + item_id;
+        Uri Download_Uri = Uri.parse(urlDownload);
+
+        DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
+        request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
+        request.setAllowedOverRoaming(false);
+        request.setTitle("Chanthel Downloading " + fileName);
+        request.setDescription("Downloading " + fileName);
+        request.setVisibleInDownloadsUi(true);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/Chanthel/" + "/" + fileName);
+
+        refid = downloadManager.enqueue(request);
+
+        Log.e("OUT", "" + refid);
+
+        list.add(refid);
+    }
+
     BroadcastReceiver onComplete = new BroadcastReceiver() {
 
         public void onReceive(Context ctxt, Intent intent) {
@@ -1420,7 +1498,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     if (status == DownloadManager.STATUS_SUCCESSFUL) {
                         // do any thing here
                         if (doDisplay) {
-                            displayPreview(fileName, ekstensi);
+                            displayPreview(previewName, ekstensi);
                         }
                     }
                 }
@@ -1455,4 +1533,52 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
         }
     };
+
+    private void fungsiUpload(String fileUri) {
+        // this will build full path of API url where we want to send data.
+        //Converter factory is required in Retrofit2 there are many converters, i'm using GSON Converter.
+        String urlApi = urlDirectory.replace("/chanthelAPI/index.php", "");
+        Retrofit builder = new Retrofit.Builder().baseUrl(urlApi).addConverterFactory(GsonConverterFactory.create()).build();
+        UploadApi api = builder.create(UploadApi.class);
+
+        //create file which we want to send to server.
+        File imageFIle = new File(fileUri);
+
+        //request body is used to attach file.
+        RequestBody requestBody = RequestBody.create(MediaType.parse("multipart/form-data"), imageFIle);
+
+        //and request body and file name using multipart.
+        MultipartBody.Part image = MultipartBody.Part.createFormData("filedata", imageFIle.getName(), requestBody); //"image" is parameter for photo in API.
+
+        // parameters
+        RequestBody userName = RequestBody.create(MediaType.parse("text/plain"), this.userName);
+        RequestBody password = RequestBody.create(MediaType.parse("text/plain"), this.password);
+        RequestBody action = RequestBody.create(MediaType.parse("text/plain"), "upload");
+        RequestBody fileName = RequestBody.create(MediaType.parse("text/plain"), imageFIle.getName());
+        final RequestBody pid = RequestBody.create(MediaType.parse("text/plain"), this.pid);
+
+        Call<UploadResponse> call = api.submitData(image, userName, password, action, fileName, pid); //we will get our response in call variable.
+
+        call.enqueue(new Callback<UploadResponse>() {
+            @Override
+            public void onResponse(Call<UploadResponse> call, retrofit2.Response<UploadResponse> response) {
+                UploadResponse body = response.body(); //get body from response.
+
+                AlertDialog.Builder alert = new AlertDialog.Builder(HomeActivity.this);
+                alert.setMessage(body.getMessage()); //display response in Alert dialog.
+                alert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+                alert.show();
+            }
+
+            @Override
+            public void onFailure(Call<UploadResponse> call, Throwable t) {
+
+            }
+        });
+    }
 }
