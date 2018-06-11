@@ -3,6 +3,7 @@ package com.solusi247.fatkhul.chanthelbeta.activities;
 import android.Manifest;
 import android.app.DownloadManager;
 import android.app.NotificationManager;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -11,6 +12,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,13 +34,17 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -59,6 +65,15 @@ import com.solusi247.fatkhul.chanthelbeta.adapter.ContentAdapter;
 import com.solusi247.fatkhul.chanthelbeta.data.ContentData;
 import com.solusi247.fatkhul.chanthelbeta.helper.UploadApi;
 import com.solusi247.fatkhul.chanthelbeta.helper.UploadResponse;
+import com.vincent.filepicker.Constant;
+import com.vincent.filepicker.activity.AudioPickActivity;
+import com.vincent.filepicker.activity.ImagePickActivity;
+import com.vincent.filepicker.activity.NormalFilePickActivity;
+import com.vincent.filepicker.activity.VideoPickActivity;
+import com.vincent.filepicker.filter.entity.AudioFile;
+import com.vincent.filepicker.filter.entity.ImageFile;
+import com.vincent.filepicker.filter.entity.NormalFile;
+import com.vincent.filepicker.filter.entity.VideoFile;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -86,6 +101,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+
+import static com.vincent.filepicker.activity.AudioPickActivity.IS_NEED_RECORDER;
+import static com.vincent.filepicker.activity.ImagePickActivity.IS_NEED_CAMERA;
 
 
 /**
@@ -537,6 +555,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         upload_file.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                showChoice();
 //                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
 //                        != PackageManager.PERMISSION_GRANTED) {
 //                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
@@ -556,34 +575,34 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 ////                UploadFile(fileName, path);
 //                fungsiUpload(path);
 
-                final Context ctx = HomeActivity.this;
-                new ChooserDialog(ctx)
-                        .withFilterRegex(false, true, ".*\\.(jpe?g|png)")
-                        .withStartFile(path)
-                        .withResources(R.string.title_choose_file, R.string.title_choose, R.string.dialog_cancel)
-                        .withChosenListener(new ChooserDialog.Result() {
-                            @Override
-                            public void onChoosePath(String paths, File pathFile) {
-//                                Toast.makeText(ctx, "FILE: " + paths, Toast.LENGTH_SHORT).show();
-//                                path = paths;
-                                fungsiUpload(paths);
-                                restartActivity(pid);
-                            }
-                        })
-                        .withNavigateUpTo(new ChooserDialog.CanNavigateUp() {
-                            @Override
-                            public boolean canUpTo(File dir) {
-                                return true;
-                            }
-                        })
-                        .withNavigateTo(new ChooserDialog.CanNavigateTo() {
-                            @Override
-                            public boolean canNavigate(File dir) {
-                                return true;
-                            }
-                        })
-                        .build()
-                        .show();
+//                final Context ctx = HomeActivity.this;
+//                new ChooserDialog(ctx)
+////                        .withFilterRegex(false, true, ".*\\.(jpe?g|png)")
+//                        .withStartFile(path)
+//                        .withResources(R.string.title_choose_file, R.string.title_choose, R.string.dialog_cancel)
+//                        .withChosenListener(new ChooserDialog.Result() {
+//                            @Override
+//                            public void onChoosePath(String paths, File pathFile) {
+////                                Toast.makeText(ctx, "FILE: " + paths, Toast.LENGTH_SHORT).show();
+////                                path = paths;
+//                                fungsiUpload(paths, pid);
+////                                restartActivity(pid);
+//                            }
+//                        })
+//                        .withNavigateUpTo(new ChooserDialog.CanNavigateUp() {
+//                            @Override
+//                            public boolean canUpTo(File dir) {
+//                                return true;
+//                            }
+//                        })
+//                        .withNavigateTo(new ChooserDialog.CanNavigateTo() {
+//                            @Override
+//                            public boolean canNavigate(File dir) {
+//                                return true;
+//                            }
+//                        })
+//                        .build()
+//                        .show();
 
                 bottomSheetDialog.hide();
             }
@@ -805,6 +824,53 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             path = filePath;
             fileName = path.substring(path.lastIndexOf("/") + 1);
             showToast(fileName + "");
+        } else {
+            String filePath = "";
+            switch (requestCode) {
+                case Constant.REQUEST_CODE_PICK_IMAGE:
+                    if (resultCode == RESULT_OK) {
+                        ArrayList<ImageFile> list = data.getParcelableArrayListExtra(Constant.RESULT_PICK_IMAGE);
+//                        StringBuilder builder = new StringBuilder();
+                        for (ImageFile file : list) {
+                            filePath = file.getPath();
+//                            builder.append(path + "\n");
+//                            builder.append(path);
+                        }
+//                    Toast.makeText(MainActivity.this, builder.toString(), Toast.LENGTH_LONG);
+//                        tView.setText(builder.toString());
+//                        fungsiUpload(filePath, pid);
+                    }
+                    break;
+                case Constant.REQUEST_CODE_PICK_VIDEO:
+                    if (resultCode == RESULT_OK) {
+                        ArrayList<VideoFile> list = data.getParcelableArrayListExtra(Constant.RESULT_PICK_VIDEO);
+                        for (VideoFile file : list) {
+                            filePath = file.getPath();
+                        }
+                    }
+                    break;
+                case Constant.REQUEST_CODE_PICK_AUDIO:
+                    if (resultCode == RESULT_OK) {
+                        ArrayList<AudioFile> list = data.getParcelableArrayListExtra(Constant.RESULT_PICK_AUDIO);
+                        for (AudioFile file : list) {
+                            filePath = file.getPath();
+                        }
+                    }
+                    break;
+//                case Constant.REQUEST_CODE_PICK_FILE:
+//                    if (resultCode == RESULT_OK) {
+//                        ArrayList<NormalFile> list = data.getParcelableArrayListExtra(Constant.RESULT_PICK_FILE);
+//                        StringBuilder builder = new StringBuilder();
+//                        for (NormalFile file : list) {
+//                            String path = file.getPath();
+//                            builder.append(path + "\n");
+////                        Toast.makeText(MainActivity.this, builder.toString(), Toast.LENGTH_LONG);
+//                        }
+////                        tView.setText(builder.toString());
+//                    }
+//                    break;
+            }
+            fungsiUpload(filePath, pid);
         }
     }
 
@@ -1129,7 +1195,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void CreateContent(final String name) {
-        String urlCreateDirectory = "" + urlDirectory + "?u=" + userName + "&p=" + password + "&act=create_directory&pid=" + pid + "&dname=" + name;
+        String direktoriName;
+        if (name.contains(" ")) {
+            direktoriName = name.replace(" ", "%20");
+        } else {
+            direktoriName = name;
+        }
+
+        String urlCreateDirectory = "" + urlDirectory + "?u=" + userName + "&p=" + password + "&act=create_directory&pid=" + pid + "&dname=" + direktoriName;
         JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(urlCreateDirectory,
                 new Response.Listener<JSONArray>() {
                     @Override
@@ -1534,7 +1607,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     };
 
-    private void fungsiUpload(String fileUri) {
+    private void fungsiUpload(String fileUri, String pidNumber) {
+        // kasih progress dialog
+        final ProgressDialog progressDialog;
+        progressDialog = new ProgressDialog(HomeActivity.this);
+        progressDialog.setMessage("Uploading to server ...");
+        progressDialog.show();
+
         // this will build full path of API url where we want to send data.
         //Converter factory is required in Retrofit2 there are many converters, i'm using GSON Converter.
         String urlApi = urlDirectory.replace("/chanthelAPI/index.php", "");
@@ -1555,13 +1634,15 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         RequestBody password = RequestBody.create(MediaType.parse("text/plain"), this.password);
         RequestBody action = RequestBody.create(MediaType.parse("text/plain"), "upload");
         RequestBody fileName = RequestBody.create(MediaType.parse("text/plain"), imageFIle.getName());
-        final RequestBody pid = RequestBody.create(MediaType.parse("text/plain"), this.pid);
+        final RequestBody pidNumb = RequestBody.create(MediaType.parse("text/plain"), pidNumber);
 
-        Call<UploadResponse> call = api.submitData(image, userName, password, action, fileName, pid); //we will get our response in call variable.
+        Call<UploadResponse> call = api.submitData(image, userName, password, action, fileName, pidNumb); //we will get our response in call variable.
 
         call.enqueue(new Callback<UploadResponse>() {
             @Override
             public void onResponse(Call<UploadResponse> call, retrofit2.Response<UploadResponse> response) {
+                progressDialog.dismiss();
+
                 UploadResponse body = response.body(); //get body from response.
 
                 AlertDialog.Builder alert = new AlertDialog.Builder(HomeActivity.this);
@@ -1569,16 +1650,134 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 alert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-
+                        restartActivity(pid);
                     }
                 });
+
                 alert.show();
             }
 
             @Override
             public void onFailure(Call<UploadResponse> call, Throwable t) {
-
+                progressDialog.dismiss();
             }
         });
     }
+
+    private void showChoice() {
+        //We need to get the instance of the LayoutInflater, use the context of this activity
+        LayoutInflater inflater = (LayoutInflater) HomeActivity.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        //Inflate the view from a predefined XML layout (no need for root id, using entire layout)
+        View layout = inflater.inflate(R.layout.choice_popup, null);
+        //load results
+//        Button imageBtn = layout.findViewById(R.id.buttonImage);
+        //Get the devices screen density to calculate correct pixel sizes
+        float density = HomeActivity.this.getResources().getDisplayMetrics().density;
+        // create a focusable PopupWindow with the given layout and correct size
+        final PopupWindow pw = new PopupWindow(layout, (int) density * 240, (int) density * 285, true);
+
+        ((Button) layout.findViewById(R.id.buttonImage)).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // ke image picker
+                Intent intent1 = new Intent(HomeActivity.this, ImagePickActivity.class);
+                intent1.putExtra(IS_NEED_CAMERA, true);
+                intent1.putExtra(Constant.MAX_NUMBER, 1);
+                startActivityForResult(intent1, Constant.REQUEST_CODE_PICK_IMAGE);
+
+                pw.dismiss();
+            }
+        });
+
+        ((Button) layout.findViewById(R.id.buttonVideo)).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Intent intent2 = new Intent(HomeActivity.this, VideoPickActivity.class);
+                intent2.putExtra(IS_NEED_CAMERA, true);
+                intent2.putExtra(Constant.MAX_NUMBER, 1);
+                startActivityForResult(intent2, Constant.REQUEST_CODE_PICK_VIDEO);
+
+                pw.dismiss();
+            }
+        });
+
+        ((Button) layout.findViewById(R.id.buttonAudio)).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Intent intent3 = new Intent(HomeActivity.this, AudioPickActivity.class);
+                intent3.putExtra(IS_NEED_RECORDER, true);
+                intent3.putExtra(Constant.MAX_NUMBER, 1);
+                startActivityForResult(intent3, Constant.REQUEST_CODE_PICK_AUDIO);
+
+                pw.dismiss();
+            }
+        });
+
+        ((Button) layout.findViewById(R.id.buttonOther)).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+//                Intent intent4 = new Intent(HomeActivity.this, NormalFilePickActivity.class);
+//                intent4.putExtra(Constant.MAX_NUMBER, 9);
+//                intent4.putExtra(NormalFilePickActivity.SUFFIX, new String[]{"xlsx", "xls", "doc", "docx", "ppt", "pptx", "pdf"});
+//                startActivityForResult(intent4, Constant.REQUEST_CODE_PICK_FILE);
+                final Context ctx = HomeActivity.this;
+                new ChooserDialog(ctx)
+//                        .withFilterRegex(false, true, ".*\\.(jpe?g|png)")
+                        .withStartFile(path)
+                        .withResources(R.string.title_choose_file, R.string.title_choose, R.string.dialog_cancel)
+                        .withChosenListener(new ChooserDialog.Result() {
+                            @Override
+                            public void onChoosePath(String paths, File pathFile) {
+//                                Toast.makeText(ctx, "FILE: " + paths, Toast.LENGTH_SHORT).show();
+//                                path = paths;
+                                fungsiUpload(paths, pid);
+//                                restartActivity(pid);
+                            }
+                        })
+                        .withNavigateUpTo(new ChooserDialog.CanNavigateUp() {
+                            @Override
+                            public boolean canUpTo(File dir) {
+                                return true;
+                            }
+                        })
+                        .withNavigateTo(new ChooserDialog.CanNavigateTo() {
+                            @Override
+                            public boolean canNavigate(File dir) {
+                                return true;
+                            }
+                        })
+                        .build()
+                        .show();
+
+                pw.dismiss();
+            }
+        });
+
+
+//        imageBtn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                // ke image picker
+//                Intent intent1 = new Intent(MainActivity.this, ImagePickActivity.class);
+//                intent1.putExtra(IS_NEED_CAMERA, true);
+//                intent1.putExtra(Constant.MAX_NUMBER, 9);
+//                startActivityForResult(intent1, Constant.REQUEST_CODE_PICK_IMAGE);
+//
+//                // kalo sudah selesai
+//                pw.dismiss();
+//            }
+//        });
+
+        //Set up touch closing outside of pop-up
+        pw.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        pw.setTouchInterceptor(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
+                    pw.dismiss();
+                    return true;
+                }
+                return false;
+            }
+        });
+        pw.setOutsideTouchable(true);
+        // display the pop-up in the center
+        pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
+    }
+
 }
