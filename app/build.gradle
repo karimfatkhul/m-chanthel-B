@@ -47,4 +47,7 @@ dependencies {
 
     // lib file picker
     implementation 'com.obsez.android.lib.filechooser:filechooser:1.1.10'
+
+    // media picker
+    implementation 'com.vincent.filepicker:MultiTypeFilePicker:1.0.7'
 }
