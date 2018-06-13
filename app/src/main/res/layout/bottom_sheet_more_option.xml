@@ -102,8 +102,7 @@
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     android:layout_marginRight="20dp"
-                    android:background="@color/colorPrimaryDark"
-                    android:foreground="@drawable/ic_content_preview_01"/>
+                    android:background="@drawable/ic_content_preview_01" />
 
                 <TextView
                     android:id="@+id/text_preview"
@@ -145,8 +144,7 @@
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     android:layout_marginRight="20dp"
-                    android:background="@color/colorPrimaryDark"
-                    android:foreground="@drawable/ic_down"/>
+                    android:background="@drawable/ic_file_download_black_24dp" />
 
                 <TextView
                     android:id="@+id/text_download"
@@ -199,42 +197,42 @@
 
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:orientation="vertical">
+            <!--<LinearLayout-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_marginBottom="10dp"-->
+            <!--android:orientation="vertical">-->
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="0.5dp"
-                    android:background="@android:color/darker_gray" />
+            <!--<View-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="0.5dp"-->
+            <!--android:background="@android:color/darker_gray" />-->
 
-            </LinearLayout>
+            <!--</LinearLayout>-->
 
-            <LinearLayout
-                android:id="@+id/paste"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                android:gravity="left"
-                android:orientation="horizontal">
+            <!--<LinearLayout-->
+            <!--android:id="@+id/paste"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_marginBottom="20dp"-->
+            <!--android:gravity="left"-->
+            <!--android:orientation="horizontal">-->
 
-                <ImageButton
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:layout_marginRight="20dp"
-                    android:background="@drawable/ic_content_paste_01" />
+            <!--<ImageButton-->
+            <!--android:layout_width="30dp"-->
+            <!--android:layout_height="30dp"-->
+            <!--android:layout_marginRight="20dp"-->
+            <!--android:background="@drawable/ic_content_paste_01" />-->
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:text="Paste"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+            <!--<TextView-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_marginTop="5dp"-->
+            <!--android:text="Paste"-->
+            <!--android:textSize="14sp"-->
+            <!--android:textStyle="bold" />-->
 
-            </LinearLayout>
+            <!--</LinearLayout>-->
 
             <LinearLayout
                 android:layout_width="match_parent"

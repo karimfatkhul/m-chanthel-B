@@ -19,6 +19,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
@@ -63,6 +65,8 @@ import com.obsez.android.lib.filechooser.ChooserDialog;
 import com.solusi247.fatkhul.chanthelbeta.R;
 import com.solusi247.fatkhul.chanthelbeta.adapter.ContentAdapter;
 import com.solusi247.fatkhul.chanthelbeta.data.ContentData;
+import com.solusi247.fatkhul.chanthelbeta.helper.CopyApi;
+import com.solusi247.fatkhul.chanthelbeta.helper.CopyResponse;
 import com.solusi247.fatkhul.chanthelbeta.helper.UploadApi;
 import com.solusi247.fatkhul.chanthelbeta.helper.UploadResponse;
 import com.vincent.filepicker.Constant;
@@ -97,6 +101,7 @@ import java.util.Map;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Retrofit;
@@ -128,6 +133,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private TextView rootFolder;
     private String kontenFile;
     private String previewName;
+    private String fid;
+    private ProgressDialog dialogLoading;
 
     private static final int REQUEST_ID_READ_PERMISSION = 100;
     private static final int REQUEST_ID_WRITE_PERMISSION = 200;
@@ -139,9 +146,15 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     boolean doDisplay;
     String ekstensi;
 
+    private BottomNavigationView bottomNavigation;
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.content_main);
+
+        bottomNavigation = (BottomNavigationView)
+                findViewById(R.id.bottom_navigation);
+        bottomNavigation.setVisibility(View.GONE);
 
         //inisialisasi komponen ui
         drawer = findViewById(R.id.drawer_layout);
@@ -301,10 +314,64 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         contentName.setText(namaContent);
                         bottomSheetDialogMoreOption.show();
                         LinearLayout copy = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.copy);
-                        LinearLayout paste = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.paste);
+//                        LinearLayout paste = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.paste);
                         final LinearLayout rename = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.rename);
                         LinearLayout delete = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.delete);
                         //LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
+
+                        // copy
+                        copy.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                final String filePid = pid;
+                                fid = listData.get(position).getId();
+
+                                bottomNavigation.setVisibility(View.VISIBLE);
+                                bottomSheetDialogMoreOption.hide();
+
+                                dialogLoading = new ProgressDialog(HomeActivity.this);
+                                dialogLoading.setIndeterminate(true);
+                                dialogLoading.setMessage("Loading");
+
+                                bottomNavigation.setOnNavigationItemSelectedListener(
+                                        new BottomNavigationView.OnNavigationItemSelectedListener() {
+                                            @Override
+                                            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                                                switch (item.getItemId()) {
+                                                    case R.id.action_paste:
+                                                        if (filePid == pid) {
+                                                            showToast("Cannot copy file in same folder");
+                                                            break;
+                                                        }
+
+                                                        dialogLoading.show();
+                                                        HashMap<String, String> params = new HashMap<>();
+                                                        params.put("u", userName);
+                                                        params.put("p", password);
+                                                        params.put("act", "copy_paste");
+                                                        params.put("fid", fid);
+                                                        params.put("pid", pid);
+                                                        fungsiCopy(params);
+
+                                                        bottomNavigation.setVisibility(View.GONE);
+                                                        restartActivity(pid);
+                                                        break;
+
+                                                    case R.id.action_add_folder:
+                                                        showToast("Not Available Yet");
+                                                        break;
+
+                                                    case R.id.action_cancel:
+                                                        bottomNavigation.setVisibility(View.GONE);
+                                                        break;
+                                                }
+                                                return false;
+                                            }
+                                        });
+
+                            }
+                        });
+                        //copy
 
                         // tambah download code start
                         LinearLayout download = bottomDialogView.findViewById(R.id.download);
@@ -1780,4 +1847,41 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
     }
 
+    private void fungsiCopy(HashMap<String, String> params) {
+        String urlApi = urlDirectory.replace("/chanthelAPI/index.php", "");
+
+        Retrofit twohRetro;
+        twohRetro = new Retrofit.Builder()
+                .baseUrl(urlApi)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        CopyApi apiService = twohRetro.create(CopyApi.class);
+        Call<CopyResponse> result = apiService.getCopy(params);
+        result.enqueue(new Callback<CopyResponse>() {
+            @Override
+            public void onResponse(Call<CopyResponse> call, retrofit2.Response<CopyResponse> response) {
+                dialogLoading.dismiss();
+                try {
+                    if (response.body() != null) {
+                        if (response.body().getErrorCode() == 0) {
+                            showToast("File copied successfully");
+                        } else {
+                            showToast("Sorry, failed to copy file");
+                        }
+                    }
+                } catch (Exception e) {
+                    showToast("Sorry, failed to copy file");
+//                    showToast("Error : " + e.toString());
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CopyResponse> call, Throwable t) {
+                dialogLoading.dismiss();
+                t.printStackTrace();
+            }
+        });
+    }
 }
