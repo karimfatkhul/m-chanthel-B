@@ -315,62 +315,79 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         namaContent = listData.get(position).getName();
                         contentName.setText(namaContent);
                         bottomSheetDialogMoreOption.show();
-                        LinearLayout copy = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.copy);
+                        LinearLayout preview = bottomDialogView.findViewById(R.id.preview);
+                        LinearLayout download = bottomDialogView.findViewById(R.id.download);
                         LinearLayout cut = bottomSheetDialogMoreOption.findViewById(R.id.cut);
-//                        LinearLayout paste = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.paste);
-                        final LinearLayout rename = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.rename);
-                        LinearLayout delete = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.delete);
-                        //LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
+                        LinearLayout copy = bottomSheetDialogMoreOption.findViewById(R.id.copy);
+                        LinearLayout rename = bottomSheetDialogMoreOption.findViewById(R.id.rename);
+                        LinearLayout delete = bottomSheetDialogMoreOption.findViewById(R.id.delete);
+                        LinearLayout linePreview = bottomSheetDialogMoreOption.findViewById(R.id.linearPreview);
+                        LinearLayout lineDownload = bottomSheetDialogMoreOption.findViewById(R.id.linearDownload);
+                        LinearLayout lineCut = bottomSheetDialogMoreOption.findViewById(R.id.linearCut);
+                        LinearLayout lineCopy = bottomSheetDialogMoreOption.findViewById(R.id.linearCopy);
+                        if (listData.get(position).getTemplate_id().matches("5")) {
+                            linePreview.setVisibility(View.GONE);
+                            preview.setVisibility(View.GONE);
+                            lineDownload.setVisibility(View.GONE);
+                            download.setVisibility(View.GONE);
+                            lineCut.setVisibility(View.GONE);
+                            cut.setVisibility(View.GONE);
+                            lineCopy.setVisibility(View.GONE);
+                            copy.setVisibility(View.GONE);
+                        }
 
                         //cut
                         cut.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                final String filePid = pid;
-                                fid = listData.get(position).getId();
+                                String template_id = listData.get(position).getTemplate_id();
+                                if (template_id.matches("6")) {
+                                    final String filePid = pid;
+                                    fid = listData.get(position).getId();
 
-                                bottomNavigation.setVisibility(View.VISIBLE);
-                                bottomSheetDialogMoreOption.hide();
+                                    bottomNavigation.setVisibility(View.VISIBLE);
+                                    bottomSheetDialogMoreOption.hide();
 
-                                dialogLoading = new ProgressDialog(HomeActivity.this);
-                                dialogLoading.setIndeterminate(true);
-                                dialogLoading.setMessage("Loading");
+                                    dialogLoading = new ProgressDialog(HomeActivity.this);
+                                    dialogLoading.setIndeterminate(true);
+                                    dialogLoading.setMessage("Loading");
 
-                                bottomNavigation.setOnNavigationItemSelectedListener(
-                                        new BottomNavigationView.OnNavigationItemSelectedListener() {
-                                            @Override
-                                            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                                                switch (item.getItemId()) {
-                                                    case R.id.action_paste:
-                                                        if (filePid == pid) {
-                                                            showToast("Cannot cut file in same folder");
+                                    bottomNavigation.setOnNavigationItemSelectedListener(
+                                            new BottomNavigationView.OnNavigationItemSelectedListener() {
+                                                @Override
+                                                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                                                    switch (item.getItemId()) {
+                                                        case R.id.action_paste:
+                                                            if (filePid == pid) {
+                                                                showToast("Cannot cut file in same folder");
+                                                                break;
+                                                            }
+
+                                                            dialogLoading.show();
+                                                            HashMap<String, String> params = new HashMap<>();
+                                                            params.put("u", userName);
+                                                            params.put("p", password);
+                                                            params.put("act", "move");
+                                                            params.put("fid", fid);
+                                                            params.put("pid", pid);
+                                                            fungsiCut(params);
+
+                                                            bottomNavigation.setVisibility(View.GONE);
+                                                            restartActivity(pid);
                                                             break;
-                                                        }
 
-                                                        dialogLoading.show();
-                                                        HashMap<String, String> params = new HashMap<>();
-                                                        params.put("u", userName);
-                                                        params.put("p", password);
-                                                        params.put("act", "move");
-                                                        params.put("fid", fid);
-                                                        params.put("pid", pid);
-                                                        fungsiCut(params);
+                                                        case R.id.action_add_folder:
+                                                            showToast("Not Available Yet");
+                                                            break;
 
-                                                        bottomNavigation.setVisibility(View.GONE);
-                                                        restartActivity(pid);
-                                                        break;
-
-                                                    case R.id.action_add_folder:
-                                                        showToast("Not Available Yet");
-                                                        break;
-
-                                                    case R.id.action_cancel:
-                                                        bottomNavigation.setVisibility(View.GONE);
-                                                        break;
+                                                        case R.id.action_cancel:
+                                                            bottomNavigation.setVisibility(View.GONE);
+                                                            break;
+                                                    }
+                                                    return false;
                                                 }
-                                                return false;
-                                            }
-                                        });
+                                            });
+                                }
                             }
                         });
                         //cut
@@ -379,60 +396,59 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         copy.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                final String filePid = pid;
-                                fid = listData.get(position).getId();
+                                String template_id = listData.get(position).getTemplate_id();
+                                if (template_id.matches("6")) {
+                                    final String filePid = pid;
+                                    fid = listData.get(position).getId();
 
-                                bottomNavigation.setVisibility(View.VISIBLE);
-                                bottomSheetDialogMoreOption.hide();
+                                    bottomNavigation.setVisibility(View.VISIBLE);
+                                    bottomSheetDialogMoreOption.hide();
 
-                                dialogLoading = new ProgressDialog(HomeActivity.this);
-                                dialogLoading.setIndeterminate(true);
-                                dialogLoading.setMessage("Loading");
+                                    dialogLoading = new ProgressDialog(HomeActivity.this);
+                                    dialogLoading.setIndeterminate(true);
+                                    dialogLoading.setMessage("Loading");
 
-                                bottomNavigation.setOnNavigationItemSelectedListener(
-                                        new BottomNavigationView.OnNavigationItemSelectedListener() {
-                                            @Override
-                                            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                                                switch (item.getItemId()) {
-                                                    case R.id.action_paste:
-                                                        if (filePid == pid) {
-                                                            showToast("Cannot copy file in same folder");
+                                    bottomNavigation.setOnNavigationItemSelectedListener(
+                                            new BottomNavigationView.OnNavigationItemSelectedListener() {
+                                                @Override
+                                                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                                                    switch (item.getItemId()) {
+                                                        case R.id.action_paste:
+                                                            if (filePid == pid) {
+                                                                showToast("Cannot copy file in same folder");
+                                                                break;
+                                                            }
+
+                                                            dialogLoading.show();
+                                                            HashMap<String, String> params = new HashMap<>();
+                                                            params.put("u", userName);
+                                                            params.put("p", password);
+                                                            params.put("act", "copy_paste");
+                                                            params.put("fid", fid);
+                                                            params.put("pid", pid);
+                                                            fungsiCopy(params);
+
+                                                            bottomNavigation.setVisibility(View.GONE);
+                                                            restartActivity(pid);
                                                             break;
-                                                        }
 
-                                                        dialogLoading.show();
-                                                        HashMap<String, String> params = new HashMap<>();
-                                                        params.put("u", userName);
-                                                        params.put("p", password);
-                                                        params.put("act", "copy_paste");
-                                                        params.put("fid", fid);
-                                                        params.put("pid", pid);
-                                                        fungsiCopy(params);
+                                                        case R.id.action_add_folder:
+                                                            showToast("Not Available Yet");
+                                                            break;
 
-                                                        bottomNavigation.setVisibility(View.GONE);
-                                                        restartActivity(pid);
-                                                        break;
-
-                                                    case R.id.action_add_folder:
-                                                        showToast("Not Available Yet");
-                                                        break;
-
-                                                    case R.id.action_cancel:
-                                                        bottomNavigation.setVisibility(View.GONE);
-                                                        break;
+                                                        case R.id.action_cancel:
+                                                            bottomNavigation.setVisibility(View.GONE);
+                                                            break;
+                                                    }
+                                                    return false;
                                                 }
-                                                return false;
-                                            }
-                                        });
-
+                                            });
+                                }
                             }
                         });
                         //copy
 
                         // tambah download code start
-                        LinearLayout download = bottomDialogView.findViewById(R.id.download);
-                        LinearLayout preview = bottomDialogView.findViewById(R.id.preview);
-
                         preview.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
