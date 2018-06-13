@@ -67,6 +67,8 @@ import com.solusi247.fatkhul.chanthelbeta.adapter.ContentAdapter;
 import com.solusi247.fatkhul.chanthelbeta.data.ContentData;
 import com.solusi247.fatkhul.chanthelbeta.helper.CopyApi;
 import com.solusi247.fatkhul.chanthelbeta.helper.CopyResponse;
+import com.solusi247.fatkhul.chanthelbeta.helper.CutApi;
+import com.solusi247.fatkhul.chanthelbeta.helper.CutResponse;
 import com.solusi247.fatkhul.chanthelbeta.helper.UploadApi;
 import com.solusi247.fatkhul.chanthelbeta.helper.UploadResponse;
 import com.vincent.filepicker.Constant;
@@ -314,10 +316,64 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         contentName.setText(namaContent);
                         bottomSheetDialogMoreOption.show();
                         LinearLayout copy = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.copy);
+                        LinearLayout cut = bottomSheetDialogMoreOption.findViewById(R.id.cut);
 //                        LinearLayout paste = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.paste);
                         final LinearLayout rename = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.rename);
                         LinearLayout delete = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.delete);
                         //LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
+
+                        //cut
+                        cut.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                final String filePid = pid;
+                                fid = listData.get(position).getId();
+
+                                bottomNavigation.setVisibility(View.VISIBLE);
+                                bottomSheetDialogMoreOption.hide();
+
+                                dialogLoading = new ProgressDialog(HomeActivity.this);
+                                dialogLoading.setIndeterminate(true);
+                                dialogLoading.setMessage("Loading");
+
+                                bottomNavigation.setOnNavigationItemSelectedListener(
+                                        new BottomNavigationView.OnNavigationItemSelectedListener() {
+                                            @Override
+                                            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                                                switch (item.getItemId()) {
+                                                    case R.id.action_paste:
+                                                        if (filePid == pid) {
+                                                            showToast("Cannot cut file in same folder");
+                                                            break;
+                                                        }
+
+                                                        dialogLoading.show();
+                                                        HashMap<String, String> params = new HashMap<>();
+                                                        params.put("u", userName);
+                                                        params.put("p", password);
+                                                        params.put("act", "move");
+                                                        params.put("fid", fid);
+                                                        params.put("pid", pid);
+                                                        fungsiCut(params);
+
+                                                        bottomNavigation.setVisibility(View.GONE);
+                                                        restartActivity(pid);
+                                                        break;
+
+                                                    case R.id.action_add_folder:
+                                                        showToast("Not Available Yet");
+                                                        break;
+
+                                                    case R.id.action_cancel:
+                                                        bottomNavigation.setVisibility(View.GONE);
+                                                        break;
+                                                }
+                                                return false;
+                                            }
+                                        });
+                            }
+                        });
+                        //cut
 
                         // copy
                         copy.setOnClickListener(new View.OnClickListener() {
@@ -1879,6 +1935,44 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
             @Override
             public void onFailure(Call<CopyResponse> call, Throwable t) {
+                dialogLoading.dismiss();
+                t.printStackTrace();
+            }
+        });
+    }
+
+    private void fungsiCut(HashMap<String, String> params) {
+        String urlApi = urlDirectory.replace("/chanthelAPI/index.php", "");
+
+        Retrofit twohRetro;
+        twohRetro = new Retrofit.Builder()
+                .baseUrl(urlApi)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        CutApi apiService = twohRetro.create(CutApi.class);
+        Call<CutResponse> result = apiService.getCut(params);
+        result.enqueue(new Callback<CutResponse>() {
+            @Override
+            public void onResponse(Call<CutResponse> call, retrofit2.Response<CutResponse> response) {
+                dialogLoading.dismiss();
+                try {
+                    if (response.body() != null) {
+                        if (response.body().getErrorCode() == 0) {
+                            showToast("File cut successfully");
+                        } else {
+                            showToast("Sorry, failed to cut file");
+                        }
+                    }
+                } catch (Exception e) {
+                    showToast("Sorry, failed to cut file");
+//                    showToast("Error : " + e.toString());
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CutResponse> call, Throwable t) {
                 dialogLoading.dismiss();
                 t.printStackTrace();
             }
