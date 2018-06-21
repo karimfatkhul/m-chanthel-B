@@ -293,8 +293,9 @@ public class SearchActivity extends AppCompatActivity {
         Volley.newRequestQueue(SearchActivity.this).add(jsonObjectReq);
     }
 
-
     public void onBackPressed() {
+        Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
+        startActivity(intent);
         finish();
     }
 }
