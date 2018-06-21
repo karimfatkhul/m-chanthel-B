@@ -886,8 +886,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 showToast("Sorry, we can't preview this file");
         }
 
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("pid", pid);
+        editor.commit();
+
         intent.putExtra("namaFile", namaFile);
         this.startActivity(intent);
+        finish();
     }
 
 //    private void displayPreview(String namaFile, String tipeFile) {
@@ -1040,6 +1046,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void onBackPressed() {
         if (lastPid.equals("1")) {
+//            finish();
             if (doubleBackToExitPressedOnce) {
                 // broadcast logout signal to all activity
                 Intent broadcastIntent = new Intent();
@@ -1047,8 +1054,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 sendBroadcast(broadcastIntent);
                 // broadcast logout signal to all activity
 
-                Intent i = new Intent(HomeActivity.this, LoginActivity.class);
-                startActivity(i);
+//                Intent i = new Intent(HomeActivity.this, LoginActivity.class);
+//                startActivity(i);
                 finish();
             } else {
                 Toast.makeText(this, "Please click once more to exit", Toast.LENGTH_SHORT).show();

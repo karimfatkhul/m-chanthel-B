@@ -32,15 +32,32 @@ import java.util.TimerTask;
  * Created by 247 on 28/03/2018.
  */
 
-public class LoginActivity extends AppCompatActivity  implements Serializable{
-    private String urlAPI ="http://192.168.1.228/chanthelAPI/index.php";
+public class LoginActivity extends AppCompatActivity implements Serializable {
+    private String urlAPI = "http://192.168.1.228/chanthelAPI/index.php";
     private String pesan;
+
+    private String userName, password;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.login);
-        final EditText textPassword = (EditText)findViewById(R.id.text_password);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        userName = preferences.getString("username", "");
+        password = preferences.getString("password", "");
+
+        // On activity start check whether there is user previously logged in or not.
+        if ((userName != "") & (password != "")) {
+
+            // If user already log in then Redirect to HomeActivity .
+            Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+            startActivity(intent);
+            finish();
+            Toast.makeText(LoginActivity.this, "Success login", Toast.LENGTH_SHORT).show();
+        }
+
+        final EditText textPassword = (EditText) findViewById(R.id.text_password);
 
         //method untuk mengatur password visibility
         textPassword.addTextChangedListener(new TextWatcher() {
@@ -56,7 +73,7 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
 
             @Override
             public void afterTextChanged(Editable s) {
-                final ImageButton lockButton = (ImageButton)findViewById(R.id.image_password);
+                final ImageButton lockButton = (ImageButton) findViewById(R.id.image_password);
                 lockButton.setImageResource(R.drawable.ic_visibility);
                 lockButton.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -77,7 +94,7 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
                                 Looper.loop();
                             }
 
-                        },2000);
+                        }, 2000);
                     }
                 });
             }
@@ -90,7 +107,7 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
     }
 
     //    Method ketika button login diklik
-    public void loginCheck(final View view){
+    public void loginCheck(final View view) {
 
         // prevent multiple click - start
         view.setClickable(false);
@@ -103,18 +120,18 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
         }, 500);
         // prevent multiple click - end
 
-        EditText textUserName = (EditText)findViewById(R.id.text_username);
-        EditText textPassword = (EditText)findViewById(R.id.text_password);
+        EditText textUserName = (EditText) findViewById(R.id.text_username);
+        EditText textPassword = (EditText) findViewById(R.id.text_password);
         final String userName = textUserName.getText().toString();
         final String userPassword = textPassword.getText().toString();
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, urlAPI+"?u="+userName+"&p="+userPassword+"&act=login", null, new Response.Listener<JSONObject>() {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, urlAPI + "?u=" + userName + "&p=" + userPassword + "&act=login", null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
                     pesan = response.getString("message");
 
-                    if (pesan.equals("Success login")){
-                        Toast.makeText(LoginActivity.this,pesan+"",Toast.LENGTH_SHORT).show();
+                    if (pesan.equals("Success login")) {
+                        Toast.makeText(LoginActivity.this, pesan + "", Toast.LENGTH_SHORT).show();
 
                         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(LoginActivity.this);
                         SharedPreferences.Editor editor = preferences.edit();
@@ -127,15 +144,14 @@ public class LoginActivity extends AppCompatActivity  implements Serializable{
 
                         finish();
 
-                        Intent intent = new Intent(LoginActivity.this,HomeActivity.class);
+                        Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
                         startActivity(intent);
-                    }
-                    else if(pesan.equals("Error username or password")){
-                        Toast.makeText(LoginActivity.this,"Username and password doesn't match",Toast.LENGTH_SHORT).show();
+                    } else if (pesan.equals("Error username or password")) {
+                        Toast.makeText(LoginActivity.this, "Username and password doesn't match", Toast.LENGTH_SHORT).show();
                     }
 
-                }catch (JSONException e){
-                    Toast.makeText(LoginActivity.this,e+"",Toast.LENGTH_SHORT).show();
+                } catch (JSONException e) {
+                    Toast.makeText(LoginActivity.this, e + "", Toast.LENGTH_SHORT).show();
                 }
             }
         }, new Response.ErrorListener() {
