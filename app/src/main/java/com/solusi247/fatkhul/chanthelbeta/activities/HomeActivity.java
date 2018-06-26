@@ -195,9 +195,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
 
         urlDirectory = preferences.getString("urlAPI", "");
-        pid = preferences.getString("pid", "");
-        lastPid = pid;
-        rootName = preferences.getString("rootname", "");
+        pid = preferences.getString("pid", "1");
+        lastPid = preferences.getString("lastPid", "1");
+        rootName = preferences.getString("rootName", "Task");
         rootFolder = (TextView) findViewById(R.id.root_name);
         rootFolder.setText(rootName);
 
@@ -266,12 +266,20 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         //showToast(listData.get(position).getTemplate_id().toString());
                         if (listData.get(position).getTemplate_id().toString().matches("5")) {
                             String cek = listData.get(position).getId();
-                            String foldernames = listData.get(position).getName();
+//                            String foldernames = listData.get(position).getName();
+                            rootName = listData.get(position).getName();
+                            lastPid = pid;
                             pid = cek.toString();
-                            lastPid = cek.toString();
-                            rootFolder.setText(foldernames);
+                            rootFolder.setText(rootName);
                             listData.clear();
                             GetData(pid);
+
+                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.putString("pid", pid);
+                            editor.putString("lastPid", lastPid);
+                            editor.putString("rootName", rootName);
+                            editor.commit();
 //                        showToast(pid);
                         }
                         break;
@@ -1045,7 +1053,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onBackPressed() {
-        if (lastPid.equals("1")) {
+        if (pid.equals("1")) {
 //            finish();
             if (doubleBackToExitPressedOnce) {
                 // broadcast logout signal to all activity
@@ -1071,7 +1079,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         } else {
 //            showToast(lastPid);
             listData.clear();
-            GetLastData(lastPid);
+//            GetLastData(lastPid);
+//            if (lastPid.matches("1")) {
+//                rootName = "Task";
+//            } else {
+            pid = lastPid;
+            GetData(lastPid);
+//            }
         }
     }
 
@@ -1167,7 +1181,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     //inisialisasi get data method for fetching json data
-    public void GetData(String pids) {
+    public void GetData(final String pids) {
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, urlDirectory + "?u=" + userName + "&p=" + password + "&act=tree_directory&pid=" + pids, null,
                 new Response.Listener<JSONObject>() {
                     @Override
@@ -1214,6 +1228,28 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                         listData.add(item);
                                         contentAdapter.notifyDataSetChanged();
                                     }
+
+                                    // get name dan pid baru
+
+                                    if (pid.matches("1")) {
+                                        rootName = "Task";
+
+                                        // name for root
+                                        rootFolder.setText(rootName);
+
+                                        // commit ke preferences
+                                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                                        SharedPreferences.Editor editor = preferences.edit();
+                                        editor.putString("pid", pid);
+                                        editor.putString("rootName", rootName);
+                                        editor.commit();
+
+                                    } else if (!(lastPid.matches("1"))) {
+                                        if (pids == lastPid) {
+                                            getNamePid(lastPid);
+                                        }
+                                    }
+
                                 } catch (JSONException e) {
                                     showToast(e + "");
                                 }
@@ -1290,6 +1326,59 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                         listData.add(item);
                                         contentAdapter.notifyDataSetChanged();
                                     }
+
+                                } catch (JSONException e) {
+                                    showToast(e + "");
+                                }
+
+                            } else {
+                                String pesan = response.getString("message");
+                                showToast(pesan + "");
+                            }
+                        } catch (JSONException e) {
+                            showToast(e + "");
+                        }
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                showToast(error + "");
+            }
+        });
+        Volley.newRequestQueue(this).add(jsonObjectRequest);
+    }
+
+    public void getNamePid(final String pids) {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, urlDirectory + "?u=" + userName + "&p=" + password + "&act=back_tree_directory&fid=" + pids, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            String errorCode = response.getString("error_code");
+                            if (errorCode.equals("0")) {
+                                try {
+                                    JSONArray jsonArray = response.getJSONArray("data");
+                                    for (int i = 0; i < jsonArray.length(); i++) {
+                                        JSONObject data = jsonArray.getJSONObject(i);
+                                        String ids = data.getString("id");
+                                        if (ids.matches(pids)) {
+                                            lastPid = data.getString("pid");
+                                            rootName = data.getString("name");
+                                            break;
+                                        }
+                                    }
+
+                                    // name for root
+                                    rootFolder.setText(rootName);
+
+                                    // commit ke preferences
+                                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                                    SharedPreferences.Editor editor = preferences.edit();
+                                    editor.putString("pid", pid);
+                                    editor.putString("lastPid", lastPid);
+                                    editor.putString("rootName", rootName);
+                                    editor.commit();
 
                                 } catch (JSONException e) {
                                     showToast(e + "");
