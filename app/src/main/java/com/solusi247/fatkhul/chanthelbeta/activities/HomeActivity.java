@@ -97,8 +97,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -797,6 +801,16 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         previewName = fileName;
 
         Uri Download_Uri;
+
+        // clear temporary folder
+        File ext = Environment.getExternalStorageDirectory();
+//        ext = getBaseContext().getCacheDir();
+//        File cDir = getBaseContext().getCacheDir();
+        File parentDir = new File(ext.getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel");
+        List<File> listFiles = getListFiles(parentDir);
+        if (listFiles.size() != 0) {
+            deleteAllFiles(listFiles);
+        }
 
         if (ekstensi.matches("doc") || ekstensi.matches("docx") || ekstensi.matches("xls") ||
                 ekstensi.matches("xlsx") || ekstensi.matches("ppt") || ekstensi.matches("pptx") ||
@@ -2131,5 +2145,26 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 t.printStackTrace();
             }
         });
+    }
+
+    private List<File> getListFiles(File parentDir) {
+        List<File> inFiles = new ArrayList<>();
+        Queue<File> files = new LinkedList<>();
+        files.addAll(Arrays.asList(parentDir.listFiles()));
+        while (!files.isEmpty()) {
+            File file = files.remove();
+            if (file.isDirectory()) {
+                files.addAll(Arrays.asList(file.listFiles()));
+            } else {
+                inFiles.add(file);
+            }
+        }
+        return inFiles;
+    }
+
+    private void deleteAllFiles(List<File> files) {
+        for (int i = 0; i < files.size(); i++) {
+            files.get(i).delete();
+        }
     }
 }
