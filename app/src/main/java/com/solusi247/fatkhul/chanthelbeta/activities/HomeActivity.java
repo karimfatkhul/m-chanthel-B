@@ -794,23 +794,38 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private void fungsiPreview(final String item_id, final String fileName, String ekstensi) {
         list.clear();
 
+        previewName = fileName;
+
+        Uri Download_Uri;
+
         if (ekstensi.matches("doc") || ekstensi.matches("docx") || ekstensi.matches("xls") ||
                 ekstensi.matches("xlsx") || ekstensi.matches("ppt") || ekstensi.matches("pptx") ||
-                ekstensi.matches("txt") || ekstensi.matches("js")) {
-            previewName = fileName.replace("." + ekstensi, "") + ".pdf";
+                ekstensi.matches("dps") || ekstensi.matches("js") || ekstensi.matches("txt") ||
+                ekstensi.matches("odt")) {
+
+            String dokumenPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
+            Download_Uri = Uri.parse(dokumenPreview);
+
         } else {
-            previewName = fileName;
+            String nonDokumenPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file_mobile&fid=" + item_id;
+            Download_Uri = Uri.parse(nonDokumenPreview);
         }
 
-
-        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file_mobile&fid=" + item_id;
-        Uri Download_Uri = Uri.parse(apiPreview);
+//        if (ekstensi.matches("doc") || ekstensi.matches("docx") || ekstensi.matches("xls") ||
+//                ekstensi.matches("xlsx") || ekstensi.matches("ppt") || ekstensi.matches("pptx") ||
+//                ekstensi.matches("txt") || ekstensi.matches("js")) {
+//            previewName = fileName.replace("." + ekstensi, "") + ".pdf";
+//        } else {
+//            previewName = fileName;
+//        }
+//        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file_mobile&fid=" + item_id;
+//        Uri Download_Uri = Uri.parse(apiPreview);
 
         DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
         request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
         request.setAllowedOverRoaming(false);
-        request.setTitle("Chanthel Downloading " + previewName);
-        request.setDescription("Downloading " + previewName);
+        request.setTitle("Chanthel Downloading " + fileName);
+        request.setDescription("Downloading " + fileName);
         request.setVisibleInDownloadsUi(true);
 
 //        File tempFile;
@@ -835,11 +850,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 //        tempFile = new File(cDir.getPath() + "/" + TEMP_FILE_NAME);
 
 
-        request.setDestinationInExternalPublicDir(cDir.getPath(), "/Chanthel/" + previewName);
+        request.setDestinationInExternalPublicDir(cDir.getPath(), "/Chanthel/" + fileName);
 
 
         Log.e("DIR", "" + cDir.getPath());
-        Log.e("DIR", cDir.getPath() + "/Chanthel/" + previewName);
+        Log.e("DIR", cDir.getPath() + "/Chanthel/" + fileName);
         //showToast(HomeActivity.this.getCacheDir().getAbsolutePath());
         // temp
 
@@ -861,47 +876,74 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private void displayPreview(String namaFile, String tipeFile) {
 
         Intent intent = null;
+        File file;
+        Uri uri;
         // setType berdasarkan tipe file
-        switch (tipeFile) {
-            case "png":
-            case "jpg":
-            case "gif":
-                intent = new Intent(this, ImageActivity.class);
-                break;
-            case "mp3":
-                intent = new Intent(this, AudioActivity.class);
-                break;
-            case "doc":
-            case "docx":
-            case "xls":
-            case "xlsx":
-            case "ppt":
-            case "pptx":
-            case "txt":
-            case "pdf":
+        try {
+            switch (tipeFile) {
+                case "png":
+                case "jpg":
+                case "gif":
+                    intent = new Intent(this, ImageActivity.class);
+                    break;
+                case "mp3":
+                    intent = new Intent(this, AudioActivity.class);
+                    break;
+                case "doc":
+                case "docx":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/msword");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "xls":
+                case "xlsx":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.ms-excel");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "dps":
+                case "ppt":
+                case "pptx":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.ms-powerpoint");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "pdf":
 //                sharingIntent.setType("application/pdf");
-                intent = new Intent(this, PdfActivity.class);
-                break;
-            case "mp4":
-            case "3gp":
-                intent = new Intent(this, VideoActivity.class);
-                break;
-            case "hjs":
-            case "html":
-                intent = new Intent(this, TextActivity.class);
-                break;
-            default:
-                showToast("Sorry, we can't preview this file");
+                    intent = new Intent(this, PdfActivity.class);
+                    break;
+                case "mp4":
+                case "3gp":
+                    intent = new Intent(this, VideoActivity.class);
+                    break;
+                case "js":
+                case "txt":
+                case "hjs":
+                case "html":
+                    intent = new Intent(this, TextActivity.class);
+                    break;
+                default:
+                    showToast("Sorry, we can't preview this file");
+            }
+
+            // ini kayaknya bisa dihapus karena tiap masuk file sudah langsung di save di preferences
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString("pid", pid);
+            editor.commit();
+
+            intent.putExtra("namaFile", namaFile);
+            this.startActivity(intent);
+        } catch (Exception e) {
+            showToast("Sorry, we can't preview this file");
         }
-
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putString("pid", pid);
-        editor.commit();
-
-        intent.putExtra("namaFile", namaFile);
-        this.startActivity(intent);
-        finish();
+        //finish();
     }
 
 //    private void displayPreview(String namaFile, String tipeFile) {
