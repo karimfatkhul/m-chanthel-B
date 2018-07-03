@@ -767,6 +767,24 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+    // check user after back onBackPressed
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        //get data dari login form
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        userName = preferences.getString("username", "");
+        password = preferences.getString("password", "");
+
+        if ((userName.matches("")) & (password.matches(""))) {
+            finish();
+            Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+            startActivity(intent);
+            Toast.makeText(HomeActivity.this, "Please Log in to continue", Toast.LENGTH_LONG).show();
+        }
+    }
+
 //    private void getLinkPreview(final String item_id, final String fileName) {
 //        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file&fid=" + item_id;
 //        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, apiPreview, null, new Response.Listener<JSONObject>() {
