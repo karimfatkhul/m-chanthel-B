@@ -3,6 +3,7 @@ package com.solusi247.fatkhul.chanthelbeta.activities;
 import android.Manifest;
 import android.app.DownloadManager;
 import android.app.NotificationManager;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -10,12 +11,16 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
@@ -31,13 +36,17 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -52,9 +61,25 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
+import com.obsez.android.lib.filechooser.ChooserDialog;
 import com.solusi247.fatkhul.chanthelbeta.R;
 import com.solusi247.fatkhul.chanthelbeta.adapter.ContentAdapter;
 import com.solusi247.fatkhul.chanthelbeta.data.ContentData;
+import com.solusi247.fatkhul.chanthelbeta.helper.CopyApi;
+import com.solusi247.fatkhul.chanthelbeta.helper.CopyResponse;
+import com.solusi247.fatkhul.chanthelbeta.helper.CutApi;
+import com.solusi247.fatkhul.chanthelbeta.helper.CutResponse;
+import com.solusi247.fatkhul.chanthelbeta.helper.UploadApi;
+import com.solusi247.fatkhul.chanthelbeta.helper.UploadResponse;
+import com.vincent.filepicker.Constant;
+import com.vincent.filepicker.activity.AudioPickActivity;
+import com.vincent.filepicker.activity.ImagePickActivity;
+import com.vincent.filepicker.activity.NormalFilePickActivity;
+import com.vincent.filepicker.activity.VideoPickActivity;
+import com.vincent.filepicker.filter.entity.AudioFile;
+import com.vincent.filepicker.filter.entity.ImageFile;
+import com.vincent.filepicker.filter.entity.NormalFile;
+import com.vincent.filepicker.filter.entity.VideoFile;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -64,14 +89,32 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+import static com.vincent.filepicker.activity.AudioPickActivity.IS_NEED_RECORDER;
+import static com.vincent.filepicker.activity.ImagePickActivity.IS_NEED_CAMERA;
 
 
 /**
@@ -95,6 +138,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private String pid, lastPid;
     private TextView rootFolder;
     private String kontenFile;
+    private String previewName;
+    private String fid;
+    private ProgressDialog dialogLoading;
 
     private static final int REQUEST_ID_READ_PERMISSION = 100;
     private static final int REQUEST_ID_WRITE_PERMISSION = 200;
@@ -103,9 +149,18 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     ArrayList<Long> list = new ArrayList<>();
     private long refid;
 
+    boolean doDisplay;
+    String ekstensi;
+
+    private BottomNavigationView bottomNavigation;
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.content_main);
+
+        bottomNavigation = (BottomNavigationView)
+                findViewById(R.id.bottom_navigation);
+        bottomNavigation.setVisibility(View.GONE);
 
         //inisialisasi komponen ui
         drawer = findViewById(R.id.drawer_layout);
@@ -144,9 +199,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
 
         urlDirectory = preferences.getString("urlAPI", "");
-        pid = preferences.getString("pid", "");
-        lastPid = pid;
-        rootName = preferences.getString("rootname", "");
+        pid = preferences.getString("pid", "1");
+        lastPid = preferences.getString("lastPid", "1");
+        rootName = preferences.getString("rootName", "Task");
         rootFolder = (TextView) findViewById(R.id.root_name);
         rootFolder.setText(rootName);
 
@@ -215,12 +270,20 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         //showToast(listData.get(position).getTemplate_id().toString());
                         if (listData.get(position).getTemplate_id().toString().matches("5")) {
                             String cek = listData.get(position).getId();
-                            String foldernames = listData.get(position).getName();
+//                            String foldernames = listData.get(position).getName();
+                            rootName = listData.get(position).getName();
+                            lastPid = pid;
                             pid = cek.toString();
-                            lastPid = cek.toString();
-                            rootFolder.setText(foldernames);
+                            rootFolder.setText(rootName);
                             listData.clear();
                             GetData(pid);
+
+                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.putString("pid", pid);
+                            editor.putString("lastPid", lastPid);
+                            editor.putString("rootName", rootName);
+                            editor.commit();
 //                        showToast(pid);
                         }
                         break;
@@ -264,38 +327,162 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         namaContent = listData.get(position).getName();
                         contentName.setText(namaContent);
                         bottomSheetDialogMoreOption.show();
-                        LinearLayout copy = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.copy);
-                        LinearLayout paste = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.paste);
-                        final LinearLayout rename = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.rename);
-                        LinearLayout delete = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.delete);
-                        //LinearLayout preview = (LinearLayout) bottomSheetDialogMoreOption.findViewById(R.id.preview);
-
-                        // tambah download code start
-                        LinearLayout download = bottomDialogView.findViewById(R.id.download);
                         LinearLayout preview = bottomDialogView.findViewById(R.id.preview);
+                        LinearLayout download = bottomDialogView.findViewById(R.id.download);
+                        LinearLayout cut = bottomSheetDialogMoreOption.findViewById(R.id.cut);
+                        LinearLayout copy = bottomSheetDialogMoreOption.findViewById(R.id.copy);
+                        LinearLayout rename = bottomSheetDialogMoreOption.findViewById(R.id.rename);
+                        LinearLayout delete = bottomSheetDialogMoreOption.findViewById(R.id.delete);
+                        LinearLayout linePreview = bottomSheetDialogMoreOption.findViewById(R.id.linearPreview);
+                        LinearLayout lineDownload = bottomSheetDialogMoreOption.findViewById(R.id.linearDownload);
+                        LinearLayout lineCut = bottomSheetDialogMoreOption.findViewById(R.id.linearCut);
+                        LinearLayout lineCopy = bottomSheetDialogMoreOption.findViewById(R.id.linearCopy);
+                        if (listData.get(position).getTemplate_id().matches("5")) {
+                            linePreview.setVisibility(View.GONE);
+                            preview.setVisibility(View.GONE);
+                            lineDownload.setVisibility(View.GONE);
+                            download.setVisibility(View.GONE);
+                            lineCut.setVisibility(View.GONE);
+                            cut.setVisibility(View.GONE);
+                            lineCopy.setVisibility(View.GONE);
+                            copy.setVisibility(View.GONE);
+                        }
+
+                        //cut
+                        cut.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                String template_id = listData.get(position).getTemplate_id();
+                                if (template_id.matches("6")) {
+                                    final String filePid = pid;
+                                    fid = listData.get(position).getId();
+
+                                    bottomNavigation.setVisibility(View.VISIBLE);
+                                    bottomSheetDialogMoreOption.hide();
+
+                                    dialogLoading = new ProgressDialog(HomeActivity.this);
+                                    dialogLoading.setIndeterminate(true);
+                                    dialogLoading.setMessage("Loading");
+
+                                    bottomNavigation.setOnNavigationItemSelectedListener(
+                                            new BottomNavigationView.OnNavigationItemSelectedListener() {
+                                                @Override
+                                                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                                                    switch (item.getItemId()) {
+                                                        case R.id.action_paste:
+                                                            if (filePid == pid) {
+                                                                showToast("Cannot cut file in same folder");
+                                                                break;
+                                                            }
+
+                                                            dialogLoading.show();
+                                                            HashMap<String, String> params = new HashMap<>();
+                                                            params.put("u", userName);
+                                                            params.put("p", password);
+                                                            params.put("act", "move");
+                                                            params.put("fid", fid);
+                                                            params.put("pid", pid);
+                                                            fungsiCut(params);
+
+                                                            bottomNavigation.setVisibility(View.GONE);
+                                                            restartActivity(pid);
+                                                            break;
+
+                                                        case R.id.action_add_folder:
+                                                            showToast("Not Available Yet");
+                                                            break;
+
+                                                        case R.id.action_cancel:
+                                                            bottomNavigation.setVisibility(View.GONE);
+                                                            break;
+                                                    }
+                                                    return false;
+                                                }
+                                            });
+                                }
+                            }
+                        });
+                        //cut
+
+                        // copy
+                        copy.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                String template_id = listData.get(position).getTemplate_id();
+                                if (template_id.matches("6")) {
+                                    final String filePid = pid;
+                                    fid = listData.get(position).getId();
+
+                                    bottomNavigation.setVisibility(View.VISIBLE);
+                                    bottomSheetDialogMoreOption.hide();
+
+                                    dialogLoading = new ProgressDialog(HomeActivity.this);
+                                    dialogLoading.setIndeterminate(true);
+                                    dialogLoading.setMessage("Loading");
+
+                                    bottomNavigation.setOnNavigationItemSelectedListener(
+                                            new BottomNavigationView.OnNavigationItemSelectedListener() {
+                                                @Override
+                                                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                                                    switch (item.getItemId()) {
+                                                        case R.id.action_paste:
+                                                            if (filePid == pid) {
+                                                                showToast("Cannot copy file in same folder");
+                                                                break;
+                                                            }
+
+                                                            dialogLoading.show();
+                                                            HashMap<String, String> params = new HashMap<>();
+                                                            params.put("u", userName);
+                                                            params.put("p", password);
+                                                            params.put("act", "copy_paste");
+                                                            params.put("fid", fid);
+                                                            params.put("pid", pid);
+                                                            fungsiCopy(params);
+
+                                                            bottomNavigation.setVisibility(View.GONE);
+                                                            restartActivity(pid);
+                                                            break;
+
+                                                        case R.id.action_add_folder:
+                                                            showToast("Not Available Yet");
+                                                            break;
+
+                                                        case R.id.action_cancel:
+                                                            bottomNavigation.setVisibility(View.GONE);
+                                                            break;
+                                                    }
+                                                    return false;
+                                                }
+                                            });
+                                }
+                            }
+                        });
+                        //copy
 
                         preview.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
+                                doDisplay = true;
                                 final String template_id;
                                 final String item_id;
                                 template_id = listData.get(position).getTemplate_id();
                                 item_id = listData.get(position).getId();
                                 if (template_id.matches("6")) {
                                     fileName = listData.get(position).getName();
-                                    getLinkPreview(item_id, fileName);
+                                    ekstensi = listData.get(position).getExt();
+
+                                    if (ekstensi.matches("zip") || ekstensi.matches("gz")) {
+                                        showToast("Sorry, we can't preview this file");
+                                    } else {
+                                        fungsiPreview(item_id, fileName, ekstensi);
+
+                                        dialogLoading = new ProgressDialog(HomeActivity.this);
+                                        dialogLoading.setIndeterminate(true);
+                                        dialogLoading.setMessage("Please wait ...");
+                                        dialogLoading.show();
+                                    }
                                     bottomSheetDialogMoreOption.hide();
-//                                    final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
-//                                    builderDownload.setMessage("Are you sure you want to preview this file ?")
-//                                            .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-//                                                @Override
-//                                                public void onClick(DialogInterface dialogInterface, int i) {
-//                                                    fungsiDownload(item_id, fileName);
-//                                                }
-//                                            }).setNegativeButton("Cancel", null);
-//                                    AlertDialog alert = builderDownload.create();
-//                                    alert.show();
-//                                    bottomSheetDialogMoreOption.hide();
                                 }
                             }
                         });
@@ -303,6 +490,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         download.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
+                                doDisplay = false;
                                 final String template_id;
                                 final String item_id;
                                 template_id = listData.get(position).getTemplate_id();
@@ -323,8 +511,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 }
                             }
                         });
-                        // tambah download code end
-
 
                         rename.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -346,6 +532,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                 try {
                                                     //get folder name that user inputed
                                                     String folderName = contentName.getText().toString();
+
+                                                    if (folderName.matches(".")) {
+                                                        folderName.replace(" ", "%20");
+                                                    }
+
                                                     if (template_id.equals("5")) {
                                                         action = "rename_directory&id=";
                                                         messej = "Folder has been renamed";
@@ -356,13 +547,21 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                         contentAdapter.notifyDataSetChanged();
                                                         showToast(messej);
                                                     } else {
-                                                        action = "rename_file&fid=";
-                                                        messej = "File has been renamed";
-                                                        listData.clear();
-                                                        RenameContent(folderName, "");
-                                                        contentAdapter.notifyItemChanged(position);
-                                                        contentAdapter.notifyDataSetChanged();
-                                                        showToast(messej);
+                                                        if (folderName.contains(".")) {
+                                                            showToast("please do not use \".\" symbol");
+                                                        } else {
+                                                            ekstensi = listData.get(position).getExt();
+                                                            if (ekstensi.length() != 0) {
+                                                                folderName = folderName + "." + ekstensi;
+                                                            }
+                                                            action = "rename_file&fid=";
+                                                            messej = "File has been renamed";
+                                                            listData.clear();
+                                                            RenameContent(folderName, "");
+                                                            contentAdapter.notifyItemChanged(position);
+                                                            contentAdapter.notifyDataSetChanged();
+                                                            showToast(messej);
+                                                        }
                                                     }
                                                     dialog.dismiss();
 
@@ -507,23 +706,55 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         upload_file.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
+                showChoice();
+//                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//                        != PackageManager.PERMISSION_GRANTED) {
+//                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
+//
+//                }
+//
+//                if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+//                    showToast("write permission ok");
+//                }
+//
+//                new MaterialFilePicker()
+//                        .withActivity(HomeActivity.this)
+//                        .withRequestCode(1000)
+//                        .withHiddenFiles(true) // Show hidden files and folders
+//                        .start();
+//
+////                UploadFile(fileName, path);
+//                fungsiUpload(path);
 
-                }
+//                final Context ctx = HomeActivity.this;
+//                new ChooserDialog(ctx)
+////                        .withFilterRegex(false, true, ".*\\.(jpe?g|png)")
+//                        .withStartFile(path)
+//                        .withResources(R.string.title_choose_file, R.string.title_choose, R.string.dialog_cancel)
+//                        .withChosenListener(new ChooserDialog.Result() {
+//                            @Override
+//                            public void onChoosePath(String paths, File pathFile) {
+////                                Toast.makeText(ctx, "FILE: " + paths, Toast.LENGTH_SHORT).show();
+////                                path = paths;
+//                                fungsiUpload(paths, pid);
+////                                restartActivity(pid);
+//                            }
+//                        })
+//                        .withNavigateUpTo(new ChooserDialog.CanNavigateUp() {
+//                            @Override
+//                            public boolean canUpTo(File dir) {
+//                                return true;
+//                            }
+//                        })
+//                        .withNavigateTo(new ChooserDialog.CanNavigateTo() {
+//                            @Override
+//                            public boolean canNavigate(File dir) {
+//                                return true;
+//                            }
+//                        })
+//                        .build()
+//                        .show();
 
-                if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                    showToast("write permission ok");
-                }
-
-                new MaterialFilePicker()
-                        .withActivity(HomeActivity.this)
-                        .withRequestCode(1000)
-                        .withHiddenFiles(true) // Show hidden files and folders
-                        .start();
-
-                UploadFile(fileName, path);
                 bottomSheetDialog.hide();
             }
         });
@@ -536,36 +767,91 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private void getLinkPreview(final String item_id, final String fileName) {
-        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file&fid=" + item_id;
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, apiPreview, null, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                try {
-                    if (response.getInt("error_code") == 3) {
-                        showToast("sorry, something wrong");
-                    } else {
-                        String urlPReview = response.getString("url");
-                        fungsiPreview(urlPReview, fileName);
-                    }
-                } catch (org.json.JSONException err) {
-                    showToast(err.toString());
-                }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                showToast(error.toString());
-            }
+    // check user after back onBackPressed
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        //get data dari login form
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        userName = preferences.getString("username", "");
+        password = preferences.getString("password", "");
+
+        if ((userName.matches("")) & (password.matches(""))) {
+            finish();
+            Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+            startActivity(intent);
+            Toast.makeText(HomeActivity.this, "Please Log in to continue", Toast.LENGTH_LONG).show();
         }
-        );
-        Volley.newRequestQueue(this).add(jsonObjectRequest);
     }
 
-    private void fungsiPreview(String url_Preview, String fileName) {
+//    private void getLinkPreview(final String item_id, final String fileName) {
+//        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file&fid=" + item_id;
+//        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, apiPreview, null, new Response.Listener<JSONObject>() {
+//            @Override
+//            public void onResponse(JSONObject response) {
+//                try {
+//                    if (response.getInt("error_code") == 3) {
+//                        showToast("sorry, something wrong");
+//                    } else {
+//                        String urlPReview = response.getString("url");
+//                        fungsiPreview(urlPReview, fileName);
+//                    }
+//                } catch (org.json.JSONException err) {
+//                    Log.e("PREVIEW", err.toString());
+//                    showToast(err.toString());
+//                }
+//            }
+//        }, new Response.ErrorListener() {
+//            @Override
+//            public void onErrorResponse(VolleyError error) {
+//                Log.e("PREVIEW", error.toString());
+//                showToast(error.toString());
+//            }
+//        }
+//        );
+//        Volley.newRequestQueue(this).add(jsonObjectRequest);
+//    }
+
+    private void fungsiPreview(final String item_id, final String fileName, String ekstensi) {
         list.clear();
 
-        Uri Download_Uri = Uri.parse(url_Preview.replaceFirst("http://yava-228.solusi247.com", "http://192.168.1.228"));
+        previewName = fileName;
+
+        Uri Download_Uri;
+
+        // clear temporary folder
+        File ext = Environment.getExternalStorageDirectory();
+//        ext = getBaseContext().getCacheDir();
+//        File cDir = getBaseContext().getCacheDir();
+        File parentDir = new File(ext.getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel");
+        List<File> listFiles = getListFiles(parentDir);
+        if (listFiles.size() != 0) {
+            deleteAllFiles(listFiles);
+        }
+
+        if (ekstensi.matches("doc") || ekstensi.matches("docx") || ekstensi.matches("xls") ||
+                ekstensi.matches("xlsx") || ekstensi.matches("ppt") || ekstensi.matches("pptx") ||
+                ekstensi.matches("dps") || ekstensi.matches("js") || ekstensi.matches("txt") ||
+                ekstensi.matches("odt") || ekstensi.matches("odp") || ekstensi.matches("ods")) {
+
+            String dokumenPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
+            Download_Uri = Uri.parse(dokumenPreview);
+
+        } else {
+            String nonDokumenPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file_mobile&fid=" + item_id;
+            Download_Uri = Uri.parse(nonDokumenPreview);
+        }
+
+//        if (ekstensi.matches("doc") || ekstensi.matches("docx") || ekstensi.matches("xls") ||
+//                ekstensi.matches("xlsx") || ekstensi.matches("ppt") || ekstensi.matches("pptx") ||
+//                ekstensi.matches("txt") || ekstensi.matches("js")) {
+//            previewName = fileName.replace("." + ekstensi, "") + ".pdf";
+//        } else {
+//            previewName = fileName;
+//        }
+//        String apiPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file_mobile&fid=" + item_id;
+//        Uri Download_Uri = Uri.parse(apiPreview);
 
         DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
         request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
@@ -573,14 +859,188 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         request.setTitle("Chanthel Downloading " + fileName);
         request.setDescription("Downloading " + fileName);
         request.setVisibleInDownloadsUi(true);
-        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/Chanthel/" + "/" + fileName);
+
+//        File tempFile;
+//        String newName = "";
+//        String[] shortName = fileName.split("\\.");
+//        for (int i = 0; i < shortName.length - 1; i++) {
+//            newName = newName + shortName[i];
+//        }
+
+//        showToast(newName);
+//        final String TEMP_FILE_NAME = newName;
+
+        // temp
+//        final String TEMP_FILE_NAME = newName;
+//        File tempFile;
+//        final String TEMP_FILE_NAME = fileName;
+
+        /** Getting Cache Directory */
+        File cDir = getBaseContext().getCacheDir();
+
+        /** Getting a reference to temporary file, if created earlier */
+//        tempFile = new File(cDir.getPath() + "/" + TEMP_FILE_NAME);
+
+
+        request.setDestinationInExternalPublicDir(cDir.getPath(), "/Chanthel/" + fileName);
+
+
+        Log.e("DIR", "" + cDir.getPath());
+        Log.e("DIR", cDir.getPath() + "/Chanthel/" + fileName);
+        //showToast(HomeActivity.this.getCacheDir().getAbsolutePath());
+        // temp
 
         refid = downloadManager.enqueue(request);
 
         Log.e("OUT", "" + refid);
 
         list.add(refid);
+
+//        // launch other apps
+//        Intent sharingIntent = new Intent(Intent.ACTION_VIEW);
+//        Uri screenshotUri = Uri.parse(cDir.getPath() + "/Chanthel/" + TEMP_FILE_NAME);
+//
+//        sharingIntent.setType("image/*");
+//        sharingIntent.putExtra(Intent.EXTRA_STREAM, screenshotUri);
+//        startActivity(Intent.createChooser(sharingIntent, "Share image using"));
     }
+
+    private void displayPreview(String namaFile, String tipeFile) {
+
+        Intent intent = null;
+        File file;
+        Uri uri;
+        // setType berdasarkan tipe file
+        try {
+            switch (tipeFile) {
+                case "odt":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.oasis.opendocument.text");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "odp":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.oasis.opendocument.presentation");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "ods":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.oasis.opendocument.spreadsheet");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "png":
+                case "jpg":
+                case "gif":
+                    intent = new Intent(this, ImageActivity.class);
+                    break;
+                case "mp3":
+                    intent = new Intent(this, AudioActivity.class);
+                    break;
+                case "doc":
+                case "docx":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/msword");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "xls":
+                case "xlsx":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.ms-excel");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "dps":
+                case "ppt":
+                case "pptx":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.ms-powerpoint");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "pdf":
+//                sharingIntent.setType("application/pdf");
+                    intent = new Intent(this, PdfActivity.class);
+                    break;
+                case "mp4":
+                case "3gp":
+                    intent = new Intent(this, VideoActivity.class);
+                    break;
+                case "js":
+                case "txt":
+                case "hjs":
+                case "html":
+                    intent = new Intent(this, TextActivity.class);
+                    break;
+//                default:
+//                    showToast("Sorry, we can't preview this file");
+//                    dialogLoading.dismiss();
+            }
+
+            // ini kayaknya bisa dihapus karena tiap masuk file sudah langsung di save di preferences
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString("pid", pid);
+            editor.commit();
+
+            intent.putExtra("namaFile", namaFile);
+
+            dialogLoading.dismiss();
+
+            this.startActivity(intent);
+        } catch (Exception e) {
+            showToast("Sorry, we can't preview this file");
+            dialogLoading.dismiss();
+        }
+        //finish();
+    }
+
+//    private void displayPreview(String namaFile, String tipeFile) {
+//        final String TEMP_FILE_NAME = namaFile;
+//
+//        /** Getting Cache Directory */
+//        File cDir = getBaseContext().getCacheDir();
+//
+//        Intent sharingIntent = new Intent(Intent.ACTION_VIEW);
+//        Uri previewUri = Uri.parse(cDir.getPath() + "/Chanthel/" + TEMP_FILE_NAME);
+//
+//        // setType berdasarkan tipe file
+//        switch (tipeFile) {
+//            case "png":
+//            case "jpg":
+//                sharingIntent.setType("image/*");
+//                break;
+//            case "mp3":
+//                sharingIntent.setType("audio/*");
+//                break;
+//            case "doc":
+//            case "docx":
+//            case "xls":
+//            case "xlsx":
+//            case "ppt":
+//            case "pptx":
+//            case "txt":
+//            case "pdf":
+//                sharingIntent.setType("application/pdf");
+//                break;
+//            case "mp4":
+//                sharingIntent.setType("video/*");
+//                break;
+//        }
+//
+//        sharingIntent.putExtra(Intent.EXTRA_STREAM, previewUri);
+//        startActivity(Intent.createChooser(sharingIntent, "display preview using"));
+//    }
+
 
     // download file
 //    private void downloadFile(String item_id, final String fileName) {
@@ -617,6 +1077,53 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             path = filePath;
             fileName = path.substring(path.lastIndexOf("/") + 1);
             showToast(fileName + "");
+        } else {
+            String filePath = "";
+            switch (requestCode) {
+                case Constant.REQUEST_CODE_PICK_IMAGE:
+                    if (resultCode == RESULT_OK) {
+                        ArrayList<ImageFile> list = data.getParcelableArrayListExtra(Constant.RESULT_PICK_IMAGE);
+//                        StringBuilder builder = new StringBuilder();
+                        for (ImageFile file : list) {
+                            filePath = file.getPath();
+//                            builder.append(path + "\n");
+//                            builder.append(path);
+                        }
+//                    Toast.makeText(MainActivity.this, builder.toString(), Toast.LENGTH_LONG);
+//                        tView.setText(builder.toString());
+//                        fungsiUpload(filePath, pid);
+                    }
+                    break;
+                case Constant.REQUEST_CODE_PICK_VIDEO:
+                    if (resultCode == RESULT_OK) {
+                        ArrayList<VideoFile> list = data.getParcelableArrayListExtra(Constant.RESULT_PICK_VIDEO);
+                        for (VideoFile file : list) {
+                            filePath = file.getPath();
+                        }
+                    }
+                    break;
+                case Constant.REQUEST_CODE_PICK_AUDIO:
+                    if (resultCode == RESULT_OK) {
+                        ArrayList<AudioFile> list = data.getParcelableArrayListExtra(Constant.RESULT_PICK_AUDIO);
+                        for (AudioFile file : list) {
+                            filePath = file.getPath();
+                        }
+                    }
+                    break;
+//                case Constant.REQUEST_CODE_PICK_FILE:
+//                    if (resultCode == RESULT_OK) {
+//                        ArrayList<NormalFile> list = data.getParcelableArrayListExtra(Constant.RESULT_PICK_FILE);
+//                        StringBuilder builder = new StringBuilder();
+//                        for (NormalFile file : list) {
+//                            String path = file.getPath();
+//                            builder.append(path + "\n");
+////                        Toast.makeText(MainActivity.this, builder.toString(), Toast.LENGTH_LONG);
+//                        }
+////                        tView.setText(builder.toString());
+//                    }
+//                    break;
+            }
+            fungsiUpload(filePath, pid);
         }
     }
 
@@ -646,7 +1153,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onBackPressed() {
-        if (lastPid.equals("1")) {
+        if (pid.equals("1")) {
+//            finish();
             if (doubleBackToExitPressedOnce) {
                 // broadcast logout signal to all activity
                 Intent broadcastIntent = new Intent();
@@ -654,8 +1162,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 sendBroadcast(broadcastIntent);
                 // broadcast logout signal to all activity
 
-                Intent i = new Intent(HomeActivity.this, LoginActivity.class);
-                startActivity(i);
+//                Intent i = new Intent(HomeActivity.this, LoginActivity.class);
+//                startActivity(i);
                 finish();
             } else {
                 Toast.makeText(this, "Please click once more to exit", Toast.LENGTH_SHORT).show();
@@ -671,7 +1179,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         } else {
 //            showToast(lastPid);
             listData.clear();
-            GetLastData(lastPid);
+//            GetLastData(lastPid);
+//            if (lastPid.matches("1")) {
+//                rootName = "Task";
+//            } else {
+            pid = lastPid;
+            GetData(lastPid);
+//            }
         }
     }
 
@@ -767,7 +1281,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     //inisialisasi get data method for fetching json data
-    public void GetData(String pids) {
+    public void GetData(final String pids) {
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, urlDirectory + "?u=" + userName + "&p=" + password + "&act=tree_directory&pid=" + pids, null,
                 new Response.Listener<JSONObject>() {
                     @Override
@@ -814,6 +1328,28 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                         listData.add(item);
                                         contentAdapter.notifyDataSetChanged();
                                     }
+
+                                    // get name dan pid baru
+
+                                    if (pid.matches("1")) {
+                                        rootName = "Task";
+
+                                        // name for root
+                                        rootFolder.setText(rootName);
+
+                                        // commit ke preferences
+                                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                                        SharedPreferences.Editor editor = preferences.edit();
+                                        editor.putString("pid", pid);
+                                        editor.putString("rootName", rootName);
+                                        editor.commit();
+
+                                    } else if (!(lastPid.matches("1"))) {
+                                        if (pids == lastPid) {
+                                            getNamePid(lastPid);
+                                        }
+                                    }
+
                                 } catch (JSONException e) {
                                     showToast(e + "");
                                 }
@@ -913,6 +1449,59 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         Volley.newRequestQueue(this).add(jsonObjectRequest);
     }
 
+    public void getNamePid(final String pids) {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, urlDirectory + "?u=" + userName + "&p=" + password + "&act=back_tree_directory&fid=" + pids, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            String errorCode = response.getString("error_code");
+                            if (errorCode.equals("0")) {
+                                try {
+                                    JSONArray jsonArray = response.getJSONArray("data");
+                                    for (int i = 0; i < jsonArray.length(); i++) {
+                                        JSONObject data = jsonArray.getJSONObject(i);
+                                        String ids = data.getString("id");
+                                        if (ids.matches(pids)) {
+                                            lastPid = data.getString("pid");
+                                            rootName = data.getString("name");
+                                            break;
+                                        }
+                                    }
+
+                                    // name for root
+                                    rootFolder.setText(rootName);
+
+                                    // commit ke preferences
+                                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(HomeActivity.this);
+                                    SharedPreferences.Editor editor = preferences.edit();
+                                    editor.putString("pid", pid);
+                                    editor.putString("lastPid", lastPid);
+                                    editor.putString("rootName", rootName);
+                                    editor.commit();
+
+                                } catch (JSONException e) {
+                                    showToast(e + "");
+                                }
+
+                            } else {
+                                String pesan = response.getString("message");
+                                showToast(pesan + "");
+                            }
+                        } catch (JSONException e) {
+                            showToast(e + "");
+                        }
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                showToast(error + "");
+            }
+        });
+        Volley.newRequestQueue(this).add(jsonObjectRequest);
+    }
+
     public void DeleteData(final String folderId) {
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, urlDirectory + "?u=" + userName + "&p=" + password + "&act=delete_directory&id=" + folderId, null,
                 new Response.Listener<JSONObject>() {
@@ -941,7 +1530,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void CreateContent(final String name) {
-        String urlCreateDirectory = "" + urlDirectory + "?u=" + userName + "&p=" + password + "&act=create_directory&pid=" + pid + "&dname=" + name;
+        String direktoriName;
+        if (name.contains(" ")) {
+            direktoriName = name.replace(" ", "%20");
+        } else {
+            direktoriName = name;
+        }
+
+        String urlCreateDirectory = "" + urlDirectory + "?u=" + userName + "&p=" + password + "&act=create_directory&pid=" + pid + "&dname=" + direktoriName;
         JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(urlCreateDirectory,
                 new Response.Listener<JSONArray>() {
                     @Override
@@ -1268,36 +1864,351 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         list.add(refid);
     }
 
+
+    private void fungsiPreview02(String item_id, String fileName) {
+        list.clear();
+
+        String urlDownload = urlDirectory + "?u=" + userName + "&p=" + password + "&act=preview_file_mobile&fid=" + item_id;
+        Uri Download_Uri = Uri.parse(urlDownload);
+
+        DownloadManager.Request request = new DownloadManager.Request(Download_Uri);
+        request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
+        request.setAllowedOverRoaming(false);
+        request.setTitle("Chanthel Downloading " + fileName);
+        request.setDescription("Downloading " + fileName);
+        request.setVisibleInDownloadsUi(true);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/Chanthel/" + "/" + fileName);
+
+        refid = downloadManager.enqueue(request);
+
+        Log.e("OUT", "" + refid);
+
+        list.add(refid);
+    }
+
     BroadcastReceiver onComplete = new BroadcastReceiver() {
 
         public void onReceive(Context ctxt, Intent intent) {
+            ////
+//            SharedPreferences downloadids = ctxt.getSharedPreferences("DownloadIDS", 0);
+//            long savedDownloadIds = downloadids.getLong("savedDownloadIds", 0);
 
+            Bundle extras = intent.getExtras();
+            DownloadManager.Query q = new DownloadManager.Query();
+            Long downloaded_id = extras.getLong(DownloadManager.EXTRA_DOWNLOAD_ID);
+            if (refid == downloaded_id) { // so it is my file that has been completed
+                q.setFilterById(downloaded_id);
 
-            long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-
-
-            Log.e("IN", "" + referenceId);
-
-            list.remove(referenceId);
-
-
-            if (list.isEmpty()) {
-
-
-                Log.e("INSIDE", "" + referenceId);
-                NotificationCompat.Builder mBuilder =
-                        new NotificationCompat.Builder(HomeActivity.this)
-                                .setSmallIcon(R.mipmap.ic_launcher)
-                                .setContentTitle("Chanthel")
-                                .setContentText("All Download completed");
-
-
-                NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationManager.notify(455, mBuilder.build());
-
-
+                DownloadManager manager = (DownloadManager) ctxt.getSystemService(Context.DOWNLOAD_SERVICE);
+                Cursor c = manager.query(q);
+                if (c.moveToFirst()) {
+                    int status = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS));
+                    if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                        // do any thing here
+                        if (doDisplay) {
+                            displayPreview(previewName, ekstensi);
+                        }
+                    }
+                }
+                c.close();
             }
+            ////
+
+//            long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+//
+//
+//            Log.e("IN", "" + referenceId);
+//
+//            list.remove(referenceId);
+//
+//
+//            if (list.isEmpty()) {
+//
+//
+//                Log.e("INSIDE", "" + referenceId);
+//                NotificationCompat.Builder mBuilder =
+//                        new NotificationCompat.Builder(HomeActivity.this)
+//                                .setSmallIcon(R.mipmap.ic_launcher)
+//                                .setContentTitle("Chanthel")
+//                                .setContentText("All Download completed");
+//
+//
+//                NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+//                notificationManager.notify(455, mBuilder.build());
+//
+//
+//            }
 
         }
     };
+
+    private void fungsiUpload(String fileUri, String pidNumber) {
+        // kasih progress dialog
+        final ProgressDialog progressDialog;
+        progressDialog = new ProgressDialog(HomeActivity.this);
+        progressDialog.setMessage("Uploading to server ...");
+        progressDialog.show();
+
+        // this will build full path of API url where we want to send data.
+        //Converter factory is required in Retrofit2 there are many converters, i'm using GSON Converter.
+        String urlApi = urlDirectory.replace("/chanthelAPI/index.php", "");
+        Retrofit builder = new Retrofit.Builder().baseUrl(urlApi).addConverterFactory(GsonConverterFactory.create()).build();
+        UploadApi api = builder.create(UploadApi.class);
+
+        //create file which we want to send to server.
+        File imageFIle = new File(fileUri);
+
+        //request body is used to attach file.
+        RequestBody requestBody = RequestBody.create(MediaType.parse("multipart/form-data"), imageFIle);
+
+        //and request body and file name using multipart.
+        MultipartBody.Part image = MultipartBody.Part.createFormData("filedata", imageFIle.getName(), requestBody); //"image" is parameter for photo in API.
+
+        // parameters
+        RequestBody userName = RequestBody.create(MediaType.parse("text/plain"), this.userName);
+        RequestBody password = RequestBody.create(MediaType.parse("text/plain"), this.password);
+        RequestBody action = RequestBody.create(MediaType.parse("text/plain"), "upload");
+        RequestBody fileName = RequestBody.create(MediaType.parse("text/plain"), imageFIle.getName());
+        final RequestBody pidNumb = RequestBody.create(MediaType.parse("text/plain"), pidNumber);
+
+        Call<UploadResponse> call = api.submitData(image, userName, password, action, fileName, pidNumb); //we will get our response in call variable.
+
+        call.enqueue(new Callback<UploadResponse>() {
+            @Override
+            public void onResponse(Call<UploadResponse> call, retrofit2.Response<UploadResponse> response) {
+                progressDialog.dismiss();
+
+                UploadResponse body = response.body(); //get body from response.
+
+                AlertDialog.Builder alert = new AlertDialog.Builder(HomeActivity.this);
+                alert.setMessage(body.getMessage()); //display response in Alert dialog.
+                alert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        restartActivity(pid);
+                    }
+                });
+
+                alert.show();
+            }
+
+            @Override
+            public void onFailure(Call<UploadResponse> call, Throwable t) {
+                progressDialog.dismiss();
+            }
+        });
+    }
+
+    private void showChoice() {
+        //We need to get the instance of the LayoutInflater, use the context of this activity
+        LayoutInflater inflater = (LayoutInflater) HomeActivity.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        //Inflate the view from a predefined XML layout (no need for root id, using entire layout)
+        View layout = inflater.inflate(R.layout.choice_popup, null);
+        //load results
+//        Button imageBtn = layout.findViewById(R.id.buttonImage);
+        //Get the devices screen density to calculate correct pixel sizes
+        float density = HomeActivity.this.getResources().getDisplayMetrics().density;
+        // create a focusable PopupWindow with the given layout and correct size
+        final PopupWindow pw = new PopupWindow(layout, (int) density * 240, (int) density * 285, true);
+
+        ((Button) layout.findViewById(R.id.buttonImage)).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // ke image picker
+                Intent intent1 = new Intent(HomeActivity.this, ImagePickActivity.class);
+                intent1.putExtra(IS_NEED_CAMERA, true);
+                intent1.putExtra(Constant.MAX_NUMBER, 1);
+                startActivityForResult(intent1, Constant.REQUEST_CODE_PICK_IMAGE);
+
+                pw.dismiss();
+            }
+        });
+
+        ((Button) layout.findViewById(R.id.buttonVideo)).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Intent intent2 = new Intent(HomeActivity.this, VideoPickActivity.class);
+                intent2.putExtra(IS_NEED_CAMERA, true);
+                intent2.putExtra(Constant.MAX_NUMBER, 1);
+                startActivityForResult(intent2, Constant.REQUEST_CODE_PICK_VIDEO);
+
+                pw.dismiss();
+            }
+        });
+
+        ((Button) layout.findViewById(R.id.buttonAudio)).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Intent intent3 = new Intent(HomeActivity.this, AudioPickActivity.class);
+                intent3.putExtra(IS_NEED_RECORDER, true);
+                intent3.putExtra(Constant.MAX_NUMBER, 1);
+                startActivityForResult(intent3, Constant.REQUEST_CODE_PICK_AUDIO);
+
+                pw.dismiss();
+            }
+        });
+
+        ((Button) layout.findViewById(R.id.buttonOther)).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+//                Intent intent4 = new Intent(HomeActivity.this, NormalFilePickActivity.class);
+//                intent4.putExtra(Constant.MAX_NUMBER, 9);
+//                intent4.putExtra(NormalFilePickActivity.SUFFIX, new String[]{"xlsx", "xls", "doc", "docx", "ppt", "pptx", "pdf"});
+//                startActivityForResult(intent4, Constant.REQUEST_CODE_PICK_FILE);
+                final Context ctx = HomeActivity.this;
+                new ChooserDialog(ctx)
+//                        .withFilterRegex(false, true, ".*\\.(jpe?g|png)")
+                        .withStartFile(path)
+                        .withResources(R.string.title_choose_file, R.string.title_choose, R.string.dialog_cancel)
+                        .withChosenListener(new ChooserDialog.Result() {
+                            @Override
+                            public void onChoosePath(String paths, File pathFile) {
+//                                Toast.makeText(ctx, "FILE: " + paths, Toast.LENGTH_SHORT).show();
+//                                path = paths;
+                                fungsiUpload(paths, pid);
+//                                restartActivity(pid);
+                            }
+                        })
+                        .withNavigateUpTo(new ChooserDialog.CanNavigateUp() {
+                            @Override
+                            public boolean canUpTo(File dir) {
+                                return true;
+                            }
+                        })
+                        .withNavigateTo(new ChooserDialog.CanNavigateTo() {
+                            @Override
+                            public boolean canNavigate(File dir) {
+                                return true;
+                            }
+                        })
+                        .build()
+                        .show();
+
+                pw.dismiss();
+            }
+        });
+
+
+//        imageBtn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                // ke image picker
+//                Intent intent1 = new Intent(MainActivity.this, ImagePickActivity.class);
+//                intent1.putExtra(IS_NEED_CAMERA, true);
+//                intent1.putExtra(Constant.MAX_NUMBER, 9);
+//                startActivityForResult(intent1, Constant.REQUEST_CODE_PICK_IMAGE);
+//
+//                // kalo sudah selesai
+//                pw.dismiss();
+//            }
+//        });
+
+        //Set up touch closing outside of pop-up
+        pw.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        pw.setTouchInterceptor(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
+                    pw.dismiss();
+                    return true;
+                }
+                return false;
+            }
+        });
+        pw.setOutsideTouchable(true);
+        // display the pop-up in the center
+        pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
+    }
+
+    private void fungsiCopy(HashMap<String, String> params) {
+        String urlApi = urlDirectory.replace("/chanthelAPI/index.php", "");
+
+        Retrofit twohRetro;
+        twohRetro = new Retrofit.Builder()
+                .baseUrl(urlApi)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        CopyApi apiService = twohRetro.create(CopyApi.class);
+        Call<CopyResponse> result = apiService.getCopy(params);
+        result.enqueue(new Callback<CopyResponse>() {
+            @Override
+            public void onResponse(Call<CopyResponse> call, retrofit2.Response<CopyResponse> response) {
+                dialogLoading.dismiss();
+                try {
+                    if (response.body() != null) {
+                        if (response.body().getErrorCode() == 0) {
+                            showToast("File copied successfully");
+                        } else {
+                            showToast("Sorry, failed to copy file");
+                        }
+                    }
+                } catch (Exception e) {
+                    showToast("Sorry, failed to copy file");
+//                    showToast("Error : " + e.toString());
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CopyResponse> call, Throwable t) {
+                dialogLoading.dismiss();
+                t.printStackTrace();
+            }
+        });
+    }
+
+    private void fungsiCut(HashMap<String, String> params) {
+        String urlApi = urlDirectory.replace("/chanthelAPI/index.php", "");
+
+        Retrofit twohRetro;
+        twohRetro = new Retrofit.Builder()
+                .baseUrl(urlApi)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        CutApi apiService = twohRetro.create(CutApi.class);
+        Call<CutResponse> result = apiService.getCut(params);
+        result.enqueue(new Callback<CutResponse>() {
+            @Override
+            public void onResponse(Call<CutResponse> call, retrofit2.Response<CutResponse> response) {
+                dialogLoading.dismiss();
+                try {
+                    if (response.body() != null) {
+                        if (response.body().getErrorCode() == 0) {
+                            showToast("File cut successfully");
+                        } else {
+                            showToast("Sorry, failed to cut file");
+                        }
+                    }
+                } catch (Exception e) {
+                    showToast("Sorry, failed to cut file");
+//                    showToast("Error : " + e.toString());
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CutResponse> call, Throwable t) {
+                dialogLoading.dismiss();
+                t.printStackTrace();
+            }
+        });
+    }
+
+    private List<File> getListFiles(File parentDir) {
+        List<File> inFiles = new ArrayList<>();
+        Queue<File> files = new LinkedList<>();
+        files.addAll(Arrays.asList(parentDir.listFiles()));
+        while (!files.isEmpty()) {
+            File file = files.remove();
+            if (file.isDirectory()) {
+                files.addAll(Arrays.asList(file.listFiles()));
+            } else {
+                inFiles.add(file);
+            }
+        }
+        return inFiles;
+    }
+
+    private void deleteAllFiles(List<File> files) {
+        for (int i = 0; i < files.size(); i++) {
+            files.get(i).delete();
+        }
+    }
 }

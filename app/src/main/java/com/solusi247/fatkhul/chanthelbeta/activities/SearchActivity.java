@@ -54,7 +54,8 @@ public class SearchActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private ContentAdapter contentAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private String userName, password, id, pid, foldername;
+    private String userName, password, id, pid, urlDirectory;
+    private String rootName, lastPid;
 
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -79,6 +80,7 @@ public class SearchActivity extends AppCompatActivity {
         }
 
         pid = preferences.getString("pid", "");
+        urlDirectory = preferences.getString("urlAPI", "");
         //Toast.makeText(SearchActivity.this, pid, Toast.LENGTH_LONG).show();
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_search);
@@ -124,13 +126,24 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void onItemClickListener(View view, final int position) {
                 pid = listData.get(position).getPid();
-                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(SearchActivity.this);
-                SharedPreferences.Editor editor = preferences.edit();
-                editor.putString("pid", pid);
-                editor.commit();
-                Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
-                startActivity(intent);
-                finish();
+                if (pid.matches("1")) {
+                    rootName = "Task";
+                    lastPid = "1";
+
+                    // commit ke preferences
+                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(SearchActivity.this);
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.putString("pid", pid);
+                    editor.putString("lastPid", lastPid);
+                    editor.putString("rootName", rootName);
+                    editor.commit();
+
+                    Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    getNamePid(pid);
+                }
             }
         });
 
@@ -293,8 +306,63 @@ public class SearchActivity extends AppCompatActivity {
         Volley.newRequestQueue(SearchActivity.this).add(jsonObjectReq);
     }
 
-
     public void onBackPressed() {
+        Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
+        startActivity(intent);
         finish();
+    }
+
+    public void getNamePid(final String pids) {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, urlDirectory + "?u=" + userName + "&p=" + password + "&act=back_tree_directory&fid=" + pids, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            String errorCode = response.getString("error_code");
+                            if (errorCode.equals("0")) {
+                                try {
+                                    JSONArray jsonArray = response.getJSONArray("data");
+                                    for (int i = 0; i < jsonArray.length(); i++) {
+                                        JSONObject data = jsonArray.getJSONObject(i);
+                                        String ids = data.getString("id");
+                                        if (ids.matches(pids)) {
+                                            lastPid = data.getString("pid");
+                                            rootName = data.getString("name");
+                                            break;
+                                        }
+                                    }
+
+                                    // commit ke preferences
+                                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(SearchActivity.this);
+                                    SharedPreferences.Editor editor = preferences.edit();
+                                    editor.putString("pid", pid);
+                                    editor.putString("lastPid", lastPid);
+                                    editor.putString("rootName", rootName);
+                                    editor.commit();
+
+                                    Intent intent = new Intent(SearchActivity.this, HomeActivity.class);
+                                    startActivity(intent);
+                                    finish();
+
+                                } catch (JSONException e) {
+                                    showToast(e + "");
+                                }
+
+                            } else {
+                                String pesan = response.getString("message");
+                                showToast(pesan + "");
+                            }
+                        } catch (JSONException e) {
+                            showToast(e + "");
+                        }
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                showToast(error + "");
+            }
+        });
+        Volley.newRequestQueue(this).add(jsonObjectRequest);
     }
 }
