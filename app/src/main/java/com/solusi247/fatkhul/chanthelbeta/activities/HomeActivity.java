@@ -472,20 +472,18 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 if (template_id.matches("6")) {
                                     fileName = listData.get(position).getName();
                                     ekstensi = listData.get(position).getExt();
-                                    fungsiPreview(item_id, fileName, ekstensi);
-//                                    displayPreview(fileName, ekstensi);
+
+                                    if (ekstensi.matches("zip") || ekstensi.matches("gz")) {
+                                        showToast("Sorry, we can't preview this file");
+                                    } else {
+                                        fungsiPreview(item_id, fileName, ekstensi);
+
+                                        dialogLoading = new ProgressDialog(HomeActivity.this);
+                                        dialogLoading.setIndeterminate(true);
+                                        dialogLoading.setMessage("Please wait ...");
+                                        dialogLoading.show();
+                                    }
                                     bottomSheetDialogMoreOption.hide();
-//                                    final AlertDialog.Builder builderDownload = new AlertDialog.Builder(HomeActivity.this);
-//                                    builderDownload.setMessage("Are you sure you want to preview this file ?")
-//                                            .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-//                                                @Override
-//                                                public void onClick(DialogInterface dialogInterface, int i) {
-//                                                    fungsiDownload(item_id, fileName);
-//                                                }
-//                                            }).setNegativeButton("Cancel", null);
-//                                    AlertDialog alert = builderDownload.create();
-//                                    alert.show();
-//                                    bottomSheetDialogMoreOption.hide();
                                 }
                             }
                         });
@@ -815,7 +813,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         if (ekstensi.matches("doc") || ekstensi.matches("docx") || ekstensi.matches("xls") ||
                 ekstensi.matches("xlsx") || ekstensi.matches("ppt") || ekstensi.matches("pptx") ||
                 ekstensi.matches("dps") || ekstensi.matches("js") || ekstensi.matches("txt") ||
-                ekstensi.matches("odt")) {
+                ekstensi.matches("odt") || ekstensi.matches("odp") || ekstensi.matches("ods")) {
 
             String dokumenPreview = urlDirectory + "?u=" + userName + "&p=" + password + "&act=download&fid=" + item_id;
             Download_Uri = Uri.parse(dokumenPreview);
@@ -895,6 +893,27 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         // setType berdasarkan tipe file
         try {
             switch (tipeFile) {
+                case "odt":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.oasis.opendocument.text");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "odp":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.oasis.opendocument.presentation");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
+                case "ods":
+                    file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + getBaseContext().getCacheDir() + "/Chanthel/" + namaFile);
+                    uri = Uri.fromFile(file);
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.oasis.opendocument.spreadsheet");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    break;
                 case "png":
                 case "jpg":
                 case "gif":
@@ -942,8 +961,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 case "html":
                     intent = new Intent(this, TextActivity.class);
                     break;
-                default:
-                    showToast("Sorry, we can't preview this file");
+//                default:
+//                    showToast("Sorry, we can't preview this file");
+//                    dialogLoading.dismiss();
             }
 
             // ini kayaknya bisa dihapus karena tiap masuk file sudah langsung di save di preferences
@@ -953,9 +973,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             editor.commit();
 
             intent.putExtra("namaFile", namaFile);
+
+            dialogLoading.dismiss();
+
             this.startActivity(intent);
         } catch (Exception e) {
             showToast("Sorry, we can't preview this file");
+            dialogLoading.dismiss();
         }
         //finish();
     }
