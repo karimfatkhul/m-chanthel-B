@@ -460,7 +460,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         });
                         //copy
 
-                        // tambah download code start
                         preview.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
@@ -512,8 +511,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 }
                             }
                         });
-                        // tambah download code end
-
 
                         rename.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -535,6 +532,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                 try {
                                                     //get folder name that user inputed
                                                     String folderName = contentName.getText().toString();
+
+                                                    if (folderName.matches(".")) {
+                                                        folderName.replace(" ", "%20");
+                                                    }
+
                                                     if (template_id.equals("5")) {
                                                         action = "rename_directory&id=";
                                                         messej = "Folder has been renamed";
